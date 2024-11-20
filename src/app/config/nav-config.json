@@ -29,6 +29,11 @@
       "name": "Settings",
       "href": "/settings",
       "showInNav": true
+    },
+    {
+      "name": "Chat",
+      "href": "/chat",
+      "showInNav": true
     }
   ]
 }
