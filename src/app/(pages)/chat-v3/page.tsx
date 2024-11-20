@@ -269,7 +269,7 @@ export default function ChatV3Page() {
     const chatData = {
       messages: currentSession.messages,
       exportDate: new Date().toISOString(),
-      provider: selectedProvider
+      provider: selectedProvider || 'default'
     };
 
     const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
