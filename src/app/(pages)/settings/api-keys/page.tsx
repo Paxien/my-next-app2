@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
-import { AlertCircle, Edit2, Trash2, Check } from 'lucide-react';
+import { AlertCircle, Edit2, Trash2, Check, Eye, EyeOff } from 'lucide-react';
 
 interface ApiKey {
   name: string;
@@ -16,9 +16,10 @@ interface ApiKey {
   exists: boolean;
   isEditing: boolean;
   existingKey: string;
+  isRevealed: boolean;
 }
 
-const initialApiKeys: Omit<ApiKey, 'exists' | 'isEditing' | 'existingKey'>[] = [
+const initialApiKeys: Omit<ApiKey, 'exists' | 'isEditing' | 'existingKey' | 'isRevealed'>[] = [
   { name: 'OpenAI', key: '', placeholder: 'sk-...', envKey: 'OPENAI_API_KEY' },
   { name: 'Anthropic', key: '', placeholder: 'sk-ant-...', envKey: 'ANTHROPIC_API_KEY' },
   { name: 'Open Router', key: '', placeholder: 'sk-or-...', envKey: 'OPENROUTER_API_KEY' },
@@ -43,7 +44,8 @@ export default function ApiKeysPage() {
             exists: !!data[key.envKey],
             isEditing: false,
             existingKey: data[key.envKey] || '',
-            key: '' // Don't show actual key value until editing
+            key: '', // Don't show actual key value until editing
+            isRevealed: false
           }));
           setKeys(existingKeys);
         }
@@ -67,7 +69,17 @@ export default function ApiKeysPage() {
       ...currentKey, 
       isEditing: !currentKey.isEditing,
       // Set the input value to the existing key when starting to edit
-      key: !currentKey.isEditing ? currentKey.existingKey : ''
+      key: !currentKey.isEditing ? currentKey.existingKey : '',
+      isRevealed: false // Reset reveal state when toggling edit
+    };
+    setKeys(newKeys);
+  };
+
+  const toggleReveal = (index: number) => {
+    const newKeys = [...keys];
+    newKeys[index] = { 
+      ...newKeys[index], 
+      isRevealed: !newKeys[index].isRevealed 
     };
     setKeys(newKeys);
   };
@@ -95,7 +107,8 @@ export default function ApiKeysPage() {
         exists: false, 
         key: '',
         existingKey: '',
-        isEditing: false
+        isEditing: false,
+        isRevealed: false
       };
       setKeys(newKeys);
 
@@ -142,7 +155,8 @@ export default function ApiKeysPage() {
         exists: key.key ? true : key.exists,
         existingKey: key.key || key.existingKey, // Update the stored key
         isEditing: false,
-        key: '' // Clear input value after saving
+        key: '', // Clear input value after saving
+        isRevealed: false
       }));
       setKeys(newKeys);
 
@@ -218,13 +232,29 @@ export default function ApiKeysPage() {
                       <Label htmlFor={`${apiKey.name.toLowerCase()}-key`}>
                         {apiKey.name} API Key
                       </Label>
-                      <Input
-                        id={`${apiKey.name.toLowerCase()}-key`}
-                        placeholder={apiKey.placeholder}
-                        value={apiKey.key}
-                        onChange={(e) => handleKeyChange(index, e.target.value)}
-                        type="password"
-                      />
+                      <div className="relative">
+                        <Input
+                          id={`${apiKey.name.toLowerCase()}-key`}
+                          placeholder={apiKey.placeholder}
+                          value={apiKey.key}
+                          onChange={(e) => handleKeyChange(index, e.target.value)}
+                          type={apiKey.isRevealed ? "text" : "password"}
+                          className="pr-10" // Make room for the reveal button
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => toggleReveal(index)}
+                        >
+                          {apiKey.isRevealed ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
