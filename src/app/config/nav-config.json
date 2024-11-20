@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "name": "Home",
+      "href": "/home",
+      "showInNav": true
+    },
+    {
+      "name": "Dashboard",
+      "href": "/dashboard",
+      "showInNav": true
+    },
+    {
+      "name": "About",
+      "href": "/about",
+      "showInNav": true
+    },
+    {
+      "name": "Pages",
+      "href": "/pages",
+      "showInNav": true
+    },
+    {
+      "name": "Ai",
+      "href": "/ai",
+      "showInNav": true
+    },
+    {
+      "name": "Settings",
+      "href": "/settings",
+      "showInNav": true
+    }
+  ]
+}
