@@ -44,6 +44,11 @@
       "name": "Chat-v2",
       "href": "/chat-v2",
       "showInNav": true
+    },
+    {
+      "name": "Chat-v3",
+      "href": "/chat-v3",
+      "showInNav": true
     }
   ]
 }
