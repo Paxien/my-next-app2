@@ -15,11 +15,11 @@ export async function GET() {
     }
 
     // Parse existing environment variables
-    const envVars = envContent.split('\n').reduce((acc: Record<string, boolean>, line) => {
-      const [key, value] = line.split('=');
-      if (key && value) {
-        // Only store whether the key exists, not the actual value
-        acc[key.trim()] = true;
+    const envVars = envContent.split('\n').reduce((acc: Record<string, string>, line) => {
+      const [key, ...valueParts] = line.split('=');
+      if (key && valueParts.length > 0) {
+        // Join value parts in case the value contains = characters
+        acc[key.trim()] = valueParts.join('=').split('#')[0].trim();
       }
       return acc;
     }, {});

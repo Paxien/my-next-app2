@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
-import { Check, X, Edit2, Trash2 } from 'lucide-react';
+import { AlertCircle, Edit2, Trash2, Check } from 'lucide-react';
 
 interface ApiKey {
   name: string;
@@ -15,9 +15,10 @@ interface ApiKey {
   envKey: string;
   exists: boolean;
   isEditing: boolean;
+  existingKey: string;
 }
 
-const initialApiKeys: Omit<ApiKey, 'exists' | 'isEditing'>[] = [
+const initialApiKeys: Omit<ApiKey, 'exists' | 'isEditing' | 'existingKey'>[] = [
   { name: 'OpenAI', key: '', placeholder: 'sk-...', envKey: 'OPENAI_API_KEY' },
   { name: 'Anthropic', key: '', placeholder: 'sk-ant-...', envKey: 'ANTHROPIC_API_KEY' },
   { name: 'Open Router', key: '', placeholder: 'sk-or-...', envKey: 'OPENROUTER_API_KEY' },
@@ -41,7 +42,8 @@ export default function ApiKeysPage() {
             ...key,
             exists: !!data[key.envKey],
             isEditing: false,
-            key: '' // Don't show actual key value for security
+            existingKey: data[key.envKey] || '',
+            key: '' // Don't show actual key value until editing
           }));
           setKeys(existingKeys);
         }
@@ -60,7 +62,13 @@ export default function ApiKeysPage() {
 
   const toggleEdit = (index: number) => {
     const newKeys = [...keys];
-    newKeys[index] = { ...newKeys[index], isEditing: !newKeys[index].isEditing, key: '' };
+    const currentKey = newKeys[index];
+    newKeys[index] = { 
+      ...currentKey, 
+      isEditing: !currentKey.isEditing,
+      // Set the input value to the existing key when starting to edit
+      key: !currentKey.isEditing ? currentKey.existingKey : ''
+    };
     setKeys(newKeys);
   };
 
@@ -82,7 +90,13 @@ export default function ApiKeysPage() {
       }
 
       const newKeys = [...keys];
-      newKeys[index] = { ...newKeys[index], exists: false, key: '' };
+      newKeys[index] = { 
+        ...newKeys[index], 
+        exists: false, 
+        key: '',
+        existingKey: '',
+        isEditing: false
+      };
       setKeys(newKeys);
 
       toast({
@@ -126,8 +140,9 @@ export default function ApiKeysPage() {
       const newKeys = keys.map(key => ({
         ...key,
         exists: key.key ? true : key.exists,
+        existingKey: key.key || key.existingKey, // Update the stored key
         isEditing: false,
-        key: '' // Clear key after saving
+        key: '' // Clear input value after saving
       }));
       setKeys(newKeys);
 
@@ -158,10 +173,15 @@ export default function ApiKeysPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <CardTitle>{apiKey.name} API Key</CardTitle>
-                    {apiKey.exists && !apiKey.isEditing && (
+                    {apiKey.exists ? (
                       <span className="flex items-center text-sm text-green-500">
                         <Check className="w-4 h-4 mr-1" />
                         Configured
+                      </span>
+                    ) : (
+                      <span className="flex items-center text-sm text-yellow-500">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        Not Configured
                       </span>
                     )}
                   </div>
