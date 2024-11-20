@@ -1,100 +1,53 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectItem } from "@/components/ui/select";
+import { Card } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
 import { Send, Bot, User, Loader2, Settings, Trash, Copy, RotateCcw } from 'lucide-react';
 import { LeftSidebar } from '@/components/chat/left-sidebar';
 import { RightSidebar } from '@/components/chat/right-sidebar';
-
-interface Message {
-  role: 'assistant' | 'user';
-  content: string;
-  timestamp?: Date;
-}
-
-interface Provider {
-  id: string;
-  name: string;
-  envKey: string;
-  description?: string;
-  defaultModel?: string;
-}
-
-const providers: Provider[] = [
-  { 
-    id: 'openai', 
-    name: 'OpenAI', 
-    envKey: 'OPENAI_API_KEY',
-    description: 'GPT-3.5 and GPT-4 models'
-  },
-  { 
-    id: 'anthropic', 
-    name: 'Anthropic', 
-    envKey: 'ANTHROPIC_API_KEY',
-    description: 'Claude and Claude 2 models'
-  },
-  { 
-    id: 'openrouter', 
-    name: 'Open Router', 
-    envKey: 'OPENROUTER_API_KEY',
-    description: 'Access to multiple AI models',
-    defaultModel: 'meta-llama/llama-3.2-90b-vision-instruct:free'
-  },
-  { 
-    id: 'google', 
-    name: 'Google AI', 
-    envKey: 'GOOGLE_AI_API_KEY',
-    description: 'PaLM and Gemini models'
-  },
-  { 
-    id: 'mistral', 
-    name: 'Mistral', 
-    envKey: 'MISTRAL_API_KEY',
-    description: 'Mistral-7B and derived models'
-  },
-  { 
-    id: 'cohere', 
-    name: 'Cohere', 
-    envKey: 'COHERE_API_KEY',
-    description: 'Command and Generate models'
-  },
-];
+import { useChatStore } from '@/lib/store/chat-store';
+import { providers } from '@/config/providers';
+import { Message } from '@/types/chat';
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<string>('');
-  const [availableProviders, setAvailableProviders] = useState<string[]>([]);
+  const [availableProvidersList, setAvailableProvidersList] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const {
+    currentSession,
+    createSession,
+    addMessage,
+    updateMessage,
+    deleteMessage,
+    setLoading,
+    setError,
+    clearError,
+    loading,
+    error
+  } = useChatStore();
+
+  // Create initial session if none exists
+  useEffect(() => {
+    if (!currentSession) {
+      createSession();
+    }
+  }, [currentSession, createSession]);
 
   // Check available providers on mount
   useEffect(() => {
     const checkProviders = async () => {
-      try {
-        const response = await fetch('/api/settings/get-api-keys');
-        if (response.ok) {
-          const data = await response.json();
-          const configured = providers
-            .filter(p => !!data[p.envKey])
-            .map(p => p.id);
-          setAvailableProviders(configured);
-          
-          // Set default provider if available
-          if (configured.length > 0 && !selectedProvider) {
-            setSelectedProvider(configured[0]);
-          }
-        }
-      } catch (error) {
-        console.error('Error checking providers:', error);
+      const available = providers.map(p => p.name);
+      setAvailableProvidersList(available);
+      if (available.length > 0 && !selectedProvider) {
+        setSelectedProvider(available[0]);
       }
     };
+
     checkProviders();
   }, [selectedProvider]);
 
@@ -104,69 +57,132 @@ export default function ChatPage() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [currentSession?.messages]);
 
   // Focus input on mount and after sending message
   useEffect(() => {
-    if (!isLoading) {
+    if (!loading) {
       inputRef.current?.focus();
     }
-  }, [isLoading]);
+  }, [loading]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || !selectedProvider || isLoading) return;
+  const sendMessage = async (content: string) => {
+    if (!content.trim() || !currentSession) return;
 
-    const userMessage: Message = {
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
+    let tempId: string | undefined;
 
     try {
-      const selectedProviderConfig = providers.find(p => p.id === selectedProvider);
+      setLoading(true);
+      clearError();
+
+      // Add user message immediately
+      addMessage(currentSession.id, {
+        role: 'user',
+        content: content,
+        timestamp: new Date()
+      });
+
+      // Create temporary assistant message for streaming
+      tempId = crypto.randomUUID();
+      addMessage(currentSession.id, {
+        id: tempId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date()
+      });
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: userMessage.content,
+          message: content,
           provider: selectedProvider,
-          history: messages,
-          model: selectedProviderConfig?.defaultModel
-        }),
+          model: providers.find(p => p.name === selectedProvider)?.defaultModel ?? '',
+          history: currentSession.messages,
+          stream: true
+        })
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to get response');
+        const contentType = response.headers.get('content-type');
+        let errorMessage = 'Failed to send message';
+        
+        if (contentType?.includes('application/json')) {
+          const error = await response.json();
+          errorMessage = error.error || errorMessage;
+        } else {
+          const text = await response.text();
+          errorMessage = `Server error: ${response.status}`;
+        }
+        
+        throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      let streamedContent = '';
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') break;
+            
+            try {
+              const json = JSON.parse(data);
+              const content = json.choices[0]?.delta?.content;
+              if (content) {
+                streamedContent += content;
+                if (tempId) {
+                  updateMessage(currentSession.id, tempId, streamedContent);
+                }
+              }
+            } catch (e) {
+              console.error('Error parsing JSON:', e);
+            }
+          }
+        }
+      }
+
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      const errorMessage = error.message || 'An unexpected error occurred';
+      setError(errorMessage);
       
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: data.message,
-        timestamp: new Date()
-      }]);
-    } catch (error) {
+      // Remove the temporary message on error
+      if (tempId) {
+        deleteMessage(currentSession.id, tempId);
+      }
+      
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to get response",
+        description: errorMessage,
         variant: "destructive",
       });
-      // Restore the input if there was an error
-      setInput(userMessage.content);
-      // Remove the user message from the chat
-      setMessages(prev => prev.slice(0, -1));
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || !selectedProvider || loading) return;
+    
+    const content = input.trim();
+    setInput('');
+    await sendMessage(content);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -177,15 +193,20 @@ export default function ChatPage() {
   };
 
   const clearChat = () => {
-    setMessages([]);
-    toast({
-      title: "Chat Cleared",
-      description: "All messages have been removed",
-    });
+    if (currentSession) {
+      // Clear all messages in the current session
+      currentSession.messages = [];
+      toast({
+        title: "Chat Cleared",
+        description: "All messages have been removed",
+      });
+    }
   };
 
   const copyToClipboard = async () => {
-    const chatText = messages
+    if (!currentSession) return;
+    
+    const chatText = currentSession.messages
       .map(m => `${m.role.toUpperCase()}: ${m.content}`)
       .join('\n\n');
     
@@ -205,52 +226,56 @@ export default function ChatPage() {
   };
 
   const regenerateResponse = async () => {
-    if (messages.length < 2 || isLoading) return;
+    if (!currentSession || currentSession.messages.length < 2 || loading) return;
+    
+    // Get the last user message
+    const messages = currentSession.messages;
+    const lastUserMessageIndex = messages.length - 2;
+    const lastUserMessage = messages[lastUserMessageIndex];
     
     // Remove the last assistant message
-    const lastUserMessage = messages[messages.length - 2];
-    setMessages(prev => prev.slice(0, -1));
+    if (messages[messages.length - 1].id) {
+      deleteMessage(currentSession.id, messages[messages.length - 1].id);
+    }
     
     // Regenerate the response
-    setInput(lastUserMessage.content);
-    await handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+    await sendMessage(lastUserMessage.content);
   };
+
+  if (!currentSession) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-4rem)]">
       <LeftSidebar />
       
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex justify-between items-center px-4 py-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex-1">
-            <Label htmlFor="provider" className="text-sm font-medium mb-1 block">AI Provider</Label>
-            <Select
-              value={selectedProvider}
-              onChange={(e) => setSelectedProvider(e.target.value)}
-              className="w-full max-w-xs"
-            >
-              <SelectItem value="" disabled>Choose a provider</SelectItem>
-              {providers.map((provider) => (
-                <SelectItem 
-                  key={provider.id} 
-                  value={provider.id}
-                  disabled={!availableProviders.includes(provider.id)}
-                >
-                  {provider.name}
-                  {provider.description && (
-                    <span className="text-gray-500 text-sm ml-2">
-                      - {provider.description}
-                    </span>
-                  )}
-                </SelectItem>
-              ))}
-            </Select>
-          </div>
-          <div className="flex gap-2">
+      <main className="flex-1 flex flex-col min-w-0">
+        <div className="border-b p-4 flex items-center justify-between gap-4">
+          <select
+            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={loading}
+            value={selectedProvider}
+            onChange={(e) => setSelectedProvider(e.target.value)}
+          >
+            <option value="">Select Provider</option>
+            {providers.map((provider) => (
+              <option key={provider.name} value={provider.name}>
+                {provider.name}
+              </option>
+            ))}
+          </select>
+
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="icon"
               onClick={clearChat}
+              disabled={currentSession.messages.length === 0 || loading}
               title="Clear chat"
             >
               <Trash className="h-4 w-4" />
@@ -259,6 +284,7 @@ export default function ChatPage() {
               variant="outline"
               size="icon"
               onClick={copyToClipboard}
+              disabled={currentSession.messages.length === 0}
               title="Copy chat"
             >
               <Copy className="h-4 w-4" />
@@ -267,7 +293,7 @@ export default function ChatPage() {
               variant="outline"
               size="icon"
               onClick={regenerateResponse}
-              disabled={messages.length < 2 || isLoading}
+              disabled={currentSession.messages.length < 2 || loading}
               title="Regenerate last response"
             >
               <RotateCcw className="h-4 w-4" />
@@ -275,8 +301,7 @@ export default function ChatPage() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => window.location.href = '/settings/api-keys'}
-              title="Configure API keys"
+              title="Settings"
             >
               <Settings className="h-4 w-4" />
             </Button>
@@ -284,42 +309,43 @@ export default function ChatPage() {
         </div>
 
         <div className="flex-1 overflow-auto min-h-0 px-4 py-2 space-y-2">
-          {messages.length === 0 ? (
+          {currentSession.messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-500">
               <Bot className="h-12 w-12 mb-4" />
               <p className="text-lg mb-2">No messages yet</p>
               <p className="text-sm text-center max-w-md">
                 Select an AI provider and start chatting. Your messages will appear here.
-                {availableProviders.length === 0 && (
-                  <span className="block mt-2 text-yellow-600">
-                    ⚠️ No API keys configured. Click the settings icon to add your keys.
+                {error && (
+                  <span className="text-red-500 block mt-2">
+                    Error: {error}
                   </span>
                 )}
               </p>
             </div>
           ) : (
-            messages.map((message, index) => (
+            currentSession.messages.map((message) => (
               <Card 
-                key={index} 
+                key={message.id} 
                 className={`p-4 ${
                   message.role === 'assistant' 
                     ? 'bg-secondary' 
                     : 'bg-primary text-primary-foreground'
                 }`}
               >
-                <div className="flex items-start space-x-3">
-                  <div className="mt-1">
-                    {message.role === 'assistant' ? (
-                      <Bot className="h-5 w-5" />
-                    ) : (
-                      <User className="h-5 w-5" />
-                    )}
-                  </div>
+                <div className="flex items-start gap-3">
+                  {message.role === 'assistant' ? (
+                    <Bot className="h-5 w-5 mt-1" />
+                  ) : (
+                    <User className="h-5 w-5 mt-1" />
+                  )}
                   <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium">
+                      {message.role === 'assistant' ? 'AI' : 'You'}
+                    </p>
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                     {message.timestamp && (
-                      <p className="text-xs opacity-50">
-                        {message.timestamp.toLocaleTimeString()}
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(message.timestamp).toLocaleTimeString()}
                       </p>
                     )}
                   </div>
@@ -330,33 +356,33 @@ export default function ChatPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        <form onSubmit={handleSubmit} className="flex gap-2 px-4 py-3 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <form onSubmit={handleSubmit} className="border-t p-4 flex gap-4">
           <Input
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={
-              availableProviders.length === 0
+              availableProvidersList.length === 0
                 ? "Please configure API keys in settings first"
                 : "Type your message..."
             }
-            disabled={isLoading || availableProviders.length === 0}
+            disabled={loading || availableProvidersList.length === 0}
             className="flex-1"
           />
           <Button 
             type="submit" 
-            disabled={isLoading || !selectedProvider || !input.trim() || availableProviders.length === 0}
+            disabled={loading || !selectedProvider || !input.trim() || availableProvidersList.length === 0}
             className="px-6"
           >
-            {isLoading ? (
+            {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Send className="h-4 w-4" />
             )}
           </Button>
         </form>
-      </div>
+      </main>
 
       <RightSidebar />
     </div>
