@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
 import { Send, Bot, User, Loader2, Settings, Trash, Copy, RotateCcw } from 'lucide-react';
+import { LeftSidebar } from '@/components/chat/left-sidebar';
+import { RightSidebar } from '@/components/chat/right-sidebar';
 
 interface Message {
   role: 'assistant' | 'user';
@@ -215,142 +217,148 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-4xl mx-auto px-4 py-2 gap-4">
-      <div className="flex justify-between items-center">
-        <div className="flex-1">
-          <Label htmlFor="provider" className="text-sm font-medium mb-1 block">AI Provider</Label>
-          <Select
-            value={selectedProvider}
-            onChange={(e) => setSelectedProvider(e.target.value)}
-            className="w-full"
-          >
-            <SelectItem value="" disabled>Choose a provider</SelectItem>
-            {providers.map((provider) => (
-              <SelectItem 
-                key={provider.id} 
-                value={provider.id}
-                disabled={!availableProviders.includes(provider.id)}
-              >
-                {provider.name}
-                {provider.description && (
-                  <span className="text-gray-500 text-sm ml-2">
-                    - {provider.description}
+    <div className="flex h-[calc(100vh-4rem)]">
+      <LeftSidebar />
+      
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex justify-between items-center px-4 py-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex-1">
+            <Label htmlFor="provider" className="text-sm font-medium mb-1 block">AI Provider</Label>
+            <Select
+              value={selectedProvider}
+              onChange={(e) => setSelectedProvider(e.target.value)}
+              className="w-full max-w-xs"
+            >
+              <SelectItem value="" disabled>Choose a provider</SelectItem>
+              {providers.map((provider) => (
+                <SelectItem 
+                  key={provider.id} 
+                  value={provider.id}
+                  disabled={!availableProviders.includes(provider.id)}
+                >
+                  {provider.name}
+                  {provider.description && (
+                    <span className="text-gray-500 text-sm ml-2">
+                      - {provider.description}
+                    </span>
+                  )}
+                </SelectItem>
+              ))}
+            </Select>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={clearChat}
+              title="Clear chat"
+            >
+              <Trash className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={copyToClipboard}
+              title="Copy chat"
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={regenerateResponse}
+              disabled={messages.length < 2 || isLoading}
+              title="Regenerate last response"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => window.location.href = '/settings/api-keys'}
+              title="Configure API keys"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-auto min-h-0 px-4 py-2 space-y-2">
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-500">
+              <Bot className="h-12 w-12 mb-4" />
+              <p className="text-lg mb-2">No messages yet</p>
+              <p className="text-sm text-center max-w-md">
+                Select an AI provider and start chatting. Your messages will appear here.
+                {availableProviders.length === 0 && (
+                  <span className="block mt-2 text-yellow-600">
+                    ⚠️ No API keys configured. Click the settings icon to add your keys.
                   </span>
                 )}
-              </SelectItem>
-            ))}
-          </Select>
-        </div>
-        <div className="flex gap-2 ml-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={clearChat}
-            title="Clear chat"
-          >
-            <Trash className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={copyToClipboard}
-            title="Copy chat"
-          >
-            <Copy className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={regenerateResponse}
-            disabled={messages.length < 2 || isLoading}
-            title="Regenerate last response"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => window.location.href = '/settings/api-keys'}
-            title="Configure API keys"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-auto min-h-0 space-y-4 pr-2">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500">
-            <Bot className="h-12 w-12 mb-4" />
-            <p className="text-lg mb-2">No messages yet</p>
-            <p className="text-sm text-center max-w-md">
-              Select an AI provider and start chatting. Your messages will appear here.
-              {availableProviders.length === 0 && (
-                <span className="block mt-2 text-yellow-600">
-                  ⚠️ No API keys configured. Click the settings icon to add your keys.
-                </span>
-              )}
-            </p>
-          </div>
-        ) : (
-          messages.map((message, index) => (
-            <Card 
-              key={index} 
-              className={`p-4 ${
-                message.role === 'assistant' 
-                  ? 'bg-secondary' 
-                  : 'bg-primary text-primary-foreground'
-              }`}
-            >
-              <div className="flex items-start space-x-3">
-                <div className="mt-1">
-                  {message.role === 'assistant' ? (
-                    <Bot className="h-5 w-5" />
-                  ) : (
-                    <User className="h-5 w-5" />
-                  )}
-                </div>
-                <div className="flex-1 space-y-1">
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  {message.timestamp && (
-                    <p className="text-xs opacity-50">
-                      {message.timestamp.toLocaleTimeString()}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </Card>
-          ))
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      <form onSubmit={handleSubmit} className="flex space-x-2 sticky bottom-0 bg-background pt-2 border-t">
-        <Input
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={
-            availableProviders.length === 0
-              ? "Please configure API keys in settings first"
-              : "Type your message..."
-          }
-          disabled={isLoading || availableProviders.length === 0}
-          className="flex-1"
-        />
-        <Button 
-          type="submit" 
-          disabled={isLoading || !selectedProvider || !input.trim() || availableProviders.length === 0}
-          className="px-6"
-        >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+              </p>
+            </div>
           ) : (
-            <Send className="h-4 w-4" />
+            messages.map((message, index) => (
+              <Card 
+                key={index} 
+                className={`p-4 ${
+                  message.role === 'assistant' 
+                    ? 'bg-secondary' 
+                    : 'bg-primary text-primary-foreground'
+                }`}
+              >
+                <div className="flex items-start space-x-3">
+                  <div className="mt-1">
+                    {message.role === 'assistant' ? (
+                      <Bot className="h-5 w-5" />
+                    ) : (
+                      <User className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    {message.timestamp && (
+                      <p className="text-xs opacity-50">
+                        {message.timestamp.toLocaleTimeString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ))
           )}
-        </Button>
-      </form>
+          <div ref={messagesEndRef} />
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex gap-2 px-4 py-3 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <Input
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              availableProviders.length === 0
+                ? "Please configure API keys in settings first"
+                : "Type your message..."
+            }
+            disabled={isLoading || availableProviders.length === 0}
+            className="flex-1"
+          />
+          <Button 
+            type="submit" 
+            disabled={isLoading || !selectedProvider || !input.trim() || availableProviders.length === 0}
+            className="px-6"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </form>
+      </div>
+
+      <RightSidebar />
     </div>
   );
 }

@@ -41,15 +41,6 @@ export default async function PagesLayout({
       <main className="flex-1 relative">
         {children}
       </main>
-
-      {/* Footer */}
-      <footer className="bg-white dark:bg-gray-800 shadow">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-gray-500">
-            2024 Your Company. All rights reserved.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }
