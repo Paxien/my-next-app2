@@ -1,258 +1,293 @@
 'use client';
 
-import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, GripVertical, ChevronDown } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ReactElement } from "react";
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, GripHorizontal, GripVertical, ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface PanelProps {
   title: string;
-  icon: ReactElement;
+  icon: React.ReactNode;
 }
 
 interface SidebarProps {
-  children: ReactElement<PanelProps>[];
+  children: React.ReactElement<PanelProps> | React.ReactElement<PanelProps>[];
   side: 'left' | 'right';
   defaultPanel?: number;
+  defaultWidth?: number;
+  minWidth?: number;
+  maxWidth?: number;
+  defaultHeight?: number;
+  minHeight?: number;
+  maxHeight?: number;
+  onResize?: (width: number, height?: number) => void;
 }
 
-const MIN_WIDTH = 48;
-const ICON_THRESHOLD = 100;
-const MAX_WIDTH = 600;
-const DEFAULT_WIDTH = 320;
+const COLLAPSED_WIDTH = 40;
 
-export function Sidebar({ children, side, defaultPanel = 0 }: SidebarProps) {
-  const [width, setWidth] = useState(DEFAULT_WIDTH);
+export function Sidebar({
+  children,
+  side = 'left',
+  defaultPanel = 0,
+  defaultWidth = 240,
+  minWidth = 240,
+  maxWidth = 480,
+  defaultHeight,
+  minHeight,
+  maxHeight,
+  onResize,
+}: SidebarProps) {
+  const [width, setWidth] = useState(defaultWidth);
+  const [height, setHeight] = useState(defaultHeight || 300);
   const [isResizing, setIsResizing] = useState(false);
+  const [isVerticalResizing, setIsVerticalResizing] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [activePanel, setActivePanel] = useState(defaultPanel);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const lastWidthRef = useRef(defaultWidth);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const startXRef = useRef<number>(0);
-  const startWidthRef = useRef<number>(0);
-  const lastWidthRef = useRef<number>(DEFAULT_WIDTH);
-  const resizingTypeRef = useRef<'handle' | 'toggle' | null>(null);
-
-  const isIconMode = width <= ICON_THRESHOLD;
-
-  const startResizing = useCallback((e: React.MouseEvent, type: 'handle' | 'toggle') => {
-    e.preventDefault();
-    e.stopPropagation(); // Prevent toggle when starting resize from toggle button
-    setIsResizing(true);
-    startXRef.current = e.clientX;
-    startWidthRef.current = isCollapsed ? MIN_WIDTH : width;
-    resizingTypeRef.current = type;
-    if (isCollapsed) {
-      setIsCollapsed(false);
-      setWidth(MIN_WIDTH);
-    }
-  }, [width, isCollapsed]);
-
-  const stopResizing = useCallback(() => {
-    setIsResizing(false);
-    resizingTypeRef.current = null;
-  }, []);
-
-  const resize = useCallback((e: MouseEvent) => {
-    if (!isResizing) return;
-
-    let delta: number;
-    if (resizingTypeRef.current === 'toggle') {
-      // When resizing from toggle button, reverse the direction for more intuitive dragging
-      delta = side === 'left'
-        ? startXRef.current - e.clientX
-        : e.clientX - startXRef.current;
-    } else {
-      delta = side === 'left'
-        ? e.clientX - startXRef.current
-        : startXRef.current - e.clientX;
-    }
-
-    const newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, startWidthRef.current + delta));
-    setWidth(newWidth);
-    
-    if (newWidth > MIN_WIDTH) {
-      lastWidthRef.current = newWidth;
-    }
-  }, [isResizing, side]);
-
-  const toggleExpand = useCallback((e: React.MouseEvent) => {
-    // Only toggle if we're not resizing
-    if (!isResizing) {
-      if (isCollapsed) {
-        setIsCollapsed(false);
-        setWidth(lastWidthRef.current);
-      } else {
-        lastWidthRef.current = width;
-        setIsCollapsed(true);
-        setWidth(MIN_WIDTH);
-      }
-    }
-  }, [isResizing, isCollapsed, width]);
+  const initialMousePosRef = useRef<{ x: number; y: number } | null>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
-    };
+    }
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const startResizing = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    initialMousePosRef.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const startVerticalResizing = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsVerticalResizing(true);
+    initialMousePosRef.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const stopResizing = useCallback(() => {
+    setIsResizing(false);
+    setIsVerticalResizing(false);
+    initialMousePosRef.current = null;
+  }, []);
+
+  const resize = useCallback(
+    (e: MouseEvent) => {
+      if (!initialMousePosRef.current) return;
+
+      if (isResizing && sidebarRef.current) {
+        const mouseDelta = e.clientX - initialMousePosRef.current.x;
+        let newWidth: number;
+
+        if (side === 'left') {
+          newWidth = width + mouseDelta;
+        } else {
+          newWidth = width - mouseDelta;
+        }
+
+        // Handle collapsing
+        if ((side === 'left' && newWidth < minWidth / 2) || 
+            (side === 'right' && newWidth < minWidth / 2)) {
+          setIsCollapsed(true);
+          return;
+        }
+
+        // Handle expanding
+        if (isCollapsed) {
+          setIsCollapsed(false);
+          newWidth = lastWidthRef.current;
+        } else {
+          newWidth = Math.min(Math.max(newWidth, minWidth), maxWidth);
+          lastWidthRef.current = newWidth;
+        }
+
+        setWidth(newWidth);
+        onResize?.(newWidth);
+        initialMousePosRef.current = { x: e.clientX, y: e.clientY };
+      } else if (isVerticalResizing && sidebarRef.current && defaultHeight !== undefined) {
+        const mouseDelta = e.clientY - initialMousePosRef.current.y;
+        let newHeight = height - mouseDelta;
+        
+        newHeight = Math.min(Math.max(newHeight, minHeight || 150), maxHeight || 600);
+        setHeight(newHeight);
+        onResize?.(width, newHeight);
+        initialMousePosRef.current = { x: e.clientX, y: e.clientY };
+      }
+    },
+    [isResizing, isVerticalResizing, side, width, height, minWidth, maxWidth, minHeight, maxHeight, defaultHeight, onResize, isCollapsed]
+  );
+
   useEffect(() => {
-    window.addEventListener('mousemove', resize);
-    window.addEventListener('mouseup', stopResizing);
+    if (isResizing || isVerticalResizing) {
+      window.addEventListener('mousemove', resize);
+      window.addEventListener('mouseup', stopResizing);
+    }
     return () => {
       window.removeEventListener('mousemove', resize);
       window.removeEventListener('mouseup', stopResizing);
     };
-  }, [resize, stopResizing]);
+  }, [isResizing, isVerticalResizing, resize, stopResizing]);
 
-  const panels = Array.isArray(children) ? children : [children];
-  const activeChild = panels[activePanel];
+  const toggleCollapse = useCallback(() => {
+    if (!isCollapsed) {
+      lastWidthRef.current = width;
+    }
+    setIsCollapsed(!isCollapsed);
+    onResize?.(isCollapsed ? lastWidthRef.current : COLLAPSED_WIDTH);
+  }, [isCollapsed, width, onResize]);
+
+  const childrenArray = Array.isArray(children) ? children : [children];
+  const currentPanel = childrenArray[activePanel];
+  const currentPanelProps = React.isValidElement<PanelProps>(currentPanel) ? currentPanel.props : null;
 
   return (
-    <aside
+    <div
       ref={sidebarRef}
       className={cn(
-        "h-full bg-background flex flex-col relative",
-        !isResizing && "transition-[width] duration-200 ease-in-out",
-        side === 'left' ? 'border-r' : 'border-l'
+        'flex flex-col bg-background border-muted relative',
+        side === 'left' ? 'border-r' : 'border-l',
+        defaultHeight !== undefined && 'border-t',
+        (isResizing || isVerticalResizing) && 'select-none'
       )}
-      style={{ width }}
+      style={{
+        width: isCollapsed ? `${COLLAPSED_WIDTH}px` : width,
+        height: defaultHeight !== undefined ? height : '100%',
+        transition: isResizing || isVerticalResizing ? 'none' : 'width 0.2s ease-out',
+      }}
     >
-      {/* Panel Selection Header */}
-      {!isIconMode && (
-        <div className="h-10 min-h-[40px] flex items-center px-2 border-b relative" ref={dropdownRef}>
-          <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center justify-between w-full px-2 py-1 text-sm hover:bg-accent rounded-sm"
-          >
-            <span className="font-medium">{activeChild.props.title}</span>
-            <ChevronDown className="h-4 w-4 ml-2" />
-          </button>
-
-          {/* Dropdown Menu */}
-          {isDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 bg-background border rounded-sm shadow-md z-50 py-1 mt-1">
-              {panels.map((panel, index) => (
-                <button
-                  key={index}
+      {/* Header with dropdown */}
+      <div className="flex items-center h-10 min-h-[2.5rem] border-b border-muted px-2">
+        {!isCollapsed && (
+          <div className="relative flex-1" ref={dropdownRef}>
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 text-sm rounded-md w-full",
+                "hover:bg-accent/50 transition-colors"
+              )}
+            >
+              {currentPanelProps?.icon}
+              <span className="flex-1 text-left">{currentPanelProps?.title}</span>
+              {childrenArray.length > 1 && (
+                <ChevronDown
                   className={cn(
-                    "flex items-center w-full px-3 py-1.5 text-sm",
-                    "hover:bg-accent/50",
-                    activePanel === index && "bg-accent"
+                    "h-4 w-4 transition-transform",
+                    isDropdownOpen && "transform rotate-180"
                   )}
-                  onClick={() => {
-                    setActivePanel(index);
-                    setIsDropdownOpen(false);
-                  }}
-                >
-                  <span className="w-5 h-5 mr-2 flex items-center justify-center">
-                    {panel.props.icon}
-                  </span>
-                  {panel.props.title}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                />
+              )}
+            </button>
 
-      {/* Panel Content */}
-      <div className={cn(
-        "flex-1 overflow-auto relative",
-        isIconMode && "px-2 py-2"
-      )}>
-        {isIconMode ? (
-          <div className="flex flex-col items-center space-y-4">
-            {panels.map((panel, index) => (
-              <button
-                key={index}
-                className={cn(
-                  "w-8 h-8 rounded-md flex items-center justify-center",
-                  "hover:bg-accent/50 transition-colors",
-                  activePanel === index && "bg-accent"
-                )}
-                onClick={() => setActivePanel(index)}
-                title={panel.props.title}
-              >
-                {panel.props.icon}
-              </button>
-            ))}
+            {/* Dropdown menu */}
+            {isDropdownOpen && childrenArray.length > 1 && (
+              <div className="absolute top-full left-0 right-0 mt-1 py-1 bg-background border rounded-md shadow-lg z-50">
+                {childrenArray.map((child, index) => {
+                  if (!React.isValidElement<PanelProps>(child)) return null;
+                  const { title, icon } = child.props;
+                  return (
+                    <button
+                      key={index}
+                      className={cn(
+                        'flex items-center gap-2 w-full px-3 py-1.5 text-sm',
+                        'hover:bg-accent/50 transition-colors',
+                        activePanel === index && 'bg-accent text-accent-foreground'
+                      )}
+                      onClick={() => {
+                        setActivePanel(index);
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      {icon}
+                      {title}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        ) : (
-          activeChild
         )}
-      </div>
-
-      {/* Resize handle */}
-      <div
-        className={cn(
-          "absolute top-0 bottom-0 group",
-          "select-none touch-none",
-          side === 'left' ? '-right-2' : '-left-2',
-          "w-4 cursor-col-resize flex items-center justify-center",
-          isResizing && resizingTypeRef.current === 'handle' && "cursor-grabbing",
-          "hover:z-50",
-          {
-            'opacity-0 hover:opacity-100 transition-opacity': isCollapsed,
-          }
-        )}
-        onMouseDown={(e) => startResizing(e, 'handle')}
-      >
-        <div className={cn(
-          "absolute top-0 bottom-0 w-1 -z-10",
-          "opacity-0 group-hover:opacity-100 transition-opacity",
-          "bg-accent/50",
-          side === 'left' ? 'right-2' : 'left-2'
-        )} />
-        <div className={cn(
-          "opacity-0 group-hover:opacity-100 transition-opacity",
-          "text-muted-foreground/50 bg-background rounded-md p-0.5",
-          "shadow-sm border"
-        )}>
-          <GripVertical className="h-4 w-4" />
-        </div>
-      </div>
-
-      {/* Toggle button */}
-      <div
-        className={cn(
-          "absolute top-1/2 -translate-y-1/2",
-          "z-10",
-          side === 'left' ? (
-            isCollapsed ? '-right-10' : '-right-3'
-          ) : (
-            isCollapsed ? '-left-10' : '-left-3'
-          )
-        )}
-      >
+        
+        {/* Collapse button */}
         <button
-          onClick={toggleExpand}
-          onMouseDown={(e) => startResizing(e, 'toggle')}
           className={cn(
-            "p-1.5 rounded-sm",
-            "bg-background border hover:bg-accent",
-            "transition-colors duration-150",
-            "shadow-sm",
-            isResizing && resizingTypeRef.current === 'toggle' && "cursor-grabbing",
-            !isResizing && "cursor-col-resize"
+            'ml-auto p-1 rounded-md hover:bg-accent',
+            isCollapsed && 'ml-0 w-full flex justify-center'
           )}
+          onClick={toggleCollapse}
         >
           {side === 'left' ? (
-            isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />
+            isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )
+          ) : isCollapsed ? (
+            <ChevronLeft className="h-4 w-4" />
           ) : (
-            isCollapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4" />
           )}
         </button>
       </div>
-    </aside>
+
+      {/* Content */}
+      <div className={cn(
+        'flex-1 min-h-0 overflow-auto',
+        !isCollapsed && 'relative'
+      )}>
+        {!isCollapsed && childrenArray[activePanel]}
+      </div>
+
+      {/* Horizontal resize handle */}
+      {!isCollapsed && (
+        <div
+          className={cn(
+            'absolute top-0 bottom-0 w-4 cursor-ew-resize flex items-center justify-center z-50',
+            side === 'left' ? '-right-2' : '-left-2'
+          )}
+          onMouseDown={startResizing}
+        >
+          <div className={cn(
+            'w-2 h-full flex items-center justify-center',
+            'bg-muted/20 hover:bg-accent/50 transition-colors',
+            isResizing && 'bg-accent/50'
+          )}>
+            <GripVertical 
+              className={cn(
+                'h-3 w-3 text-muted-foreground/50',
+                'hover:text-muted-foreground transition-colors',
+                isResizing && 'text-muted-foreground'
+              )} 
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Vertical resize handle */}
+      {!isCollapsed && defaultHeight !== undefined && (
+        <div
+          className={cn(
+            'absolute left-0 right-0 h-2 -top-1 cursor-ns-resize flex items-center justify-center',
+            'bg-muted/20 hover:bg-accent/50 transition-colors',
+            isVerticalResizing && 'bg-accent/50'
+          )}
+          onMouseDown={startVerticalResizing}
+        >
+          <GripHorizontal 
+            className={cn(
+              'h-3 w-3 text-muted-foreground/50',
+              'hover:text-muted-foreground transition-colors',
+              isVerticalResizing && 'text-muted-foreground'
+            )} 
+          />
+        </div>
+      )}
+    </div>
   );
 }
