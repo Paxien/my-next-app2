@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    const { message, provider, history } = await req.json();
+    const { message, provider, history, model } = await req.json();
 
     if (!message) {
       return NextResponse.json(
@@ -73,10 +73,12 @@ export async function POST(req: Request) {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'http://localhost:3000',
+            'X-Title': 'Next.js Chat App'
           },
           body: JSON.stringify({
-            model: 'openai/gpt-3.5-turbo',
+            model: model || 'meta-llama/llama-3.2-90b-vision-instruct:free',
             messages: [
               ...history.map((msg: any) => ({
                 role: msg.role,
