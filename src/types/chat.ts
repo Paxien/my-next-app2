@@ -1,18 +1,16 @@
 export type Provider = 'openai' | 'anthropic' | 'openrouter' | 'google' | 'mistral' | 'cohere';
 
 export interface Message {
-  id: string;
-  role: 'user' | 'assistant';
+  id?: string;
+  role: 'assistant' | 'user';
   content: string;
-  timestamp: Date;
+  timestamp?: Date;
 }
 
 export interface ChatSession {
   id: string;
-  title: string;
+  name: string;
   messages: Message[];
-  provider: Provider;
-  model?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,13 +22,14 @@ export interface APIResponse {
 }
 
 export interface ProviderConfig {
-  name: Provider;
-  models: {
-    id: string;
+  name: string;
+  envKey: string;
+  description: string;
+  defaultModel?: string;
+  models?: {
     name: string;
+    id: string;
     description?: string;
     maxTokens?: number;
-    price?: string;
   }[];
-  defaultModel: string;
 }

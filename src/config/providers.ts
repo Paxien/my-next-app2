@@ -2,111 +2,123 @@ import { ProviderConfig } from '@/types/chat';
 
 export const providers: ProviderConfig[] = [
   {
-    name: 'openrouter',
+    name: 'OpenAI',
+    envKey: 'OPENAI_API_KEY',
+    description: 'GPT-3.5 and GPT-4 models',
+    defaultModel: 'gpt-3.5-turbo',
     models: [
       {
-        id: 'meta-llama/llama-3.2-90b-vision-instruct:free',
-        name: 'Llama 3.2 90B',
-        description: 'Meta\'s most capable open-source model',
-        maxTokens: 128000
-      },
-      {
-        id: 'mistral-8x7b-instruct',
-        name: 'Mixtral 8x7B',
-        description: 'High-performance mixture of experts model',
-        maxTokens: 32000
-      }
-    ],
-    defaultModel: 'meta-llama/llama-3.2-90b-vision-instruct:free'
-  },
-  {
-    name: 'anthropic',
-    models: [
-      {
-        id: 'claude-3-opus-20240229',
-        name: 'Claude 3 Opus',
-        description: 'Most capable model, ideal for complex tasks',
-        maxTokens: 200000
-      },
-      {
-        id: 'claude-3-sonnet-20240229',
-        name: 'Claude 3 Sonnet',
-        description: 'Balanced speed and capabilities',
-        maxTokens: 200000
-      }
-    ],
-    defaultModel: 'claude-3-opus-20240229'
-  },
-  {
-    name: 'openai',
-    models: [
-      {
-        id: 'gpt-4-turbo-preview',
-        name: 'GPT-4 Turbo',
-        description: 'Most capable OpenAI model',
-        maxTokens: 128000
-      },
-      {
-        id: 'gpt-3.5-turbo',
         name: 'GPT-3.5 Turbo',
-        description: 'Fast and efficient model',
-        maxTokens: 16000
+        id: 'gpt-3.5-turbo',
+        description: 'Most capable GPT-3.5 model, optimized for chat',
+        maxTokens: 4096
+      },
+      {
+        name: 'GPT-4 Turbo',
+        id: 'gpt-4-turbo-preview',
+        description: 'Most capable GPT-4 model, optimized for chat',
+        maxTokens: 128000
       }
-    ],
-    defaultModel: 'gpt-3.5-turbo'
+    ]
   },
   {
-    name: 'google',
+    name: 'Anthropic',
+    envKey: 'ANTHROPIC_API_KEY',
+    description: 'Claude and Claude 2 models',
+    defaultModel: 'claude-3-opus-20240229',
     models: [
       {
-        id: 'gemini-pro',
+        name: 'Claude 3 Opus',
+        id: 'claude-3-opus-20240229',
+        description: 'Most capable Claude model',
+        maxTokens: 200000
+      },
+      {
+        name: 'Claude 3 Sonnet',
+        id: 'claude-3-sonnet-20240229',
+        description: 'Balanced performance and speed',
+        maxTokens: 200000
+      }
+    ]
+  },
+  {
+    name: 'Open Router',
+    envKey: 'OPENROUTER_API_KEY',
+    description: 'Access to multiple AI models',
+    defaultModel: 'meta-llama/llama-3.2-90b-vision-instruct:free',
+    models: [
+      {
+        name: 'Llama 3.2 90B Vision',
+        id: 'meta-llama/llama-3.2-90b-vision-instruct:free',
+        description: 'Free tier of Meta\'s Llama 3.2 90B Vision model',
+        maxTokens: 4096
+      }
+    ]
+  },
+  {
+    name: 'Google AI',
+    envKey: 'GOOGLE_AI_API_KEY',
+    description: 'Gemini models',
+    defaultModel: 'gemini-pro',
+    models: [
+      {
         name: 'Gemini Pro',
-        description: 'Google\'s most capable model',
-        maxTokens: 32000
+        id: 'gemini-pro',
+        description: 'Best performance for text-only tasks',
+        maxTokens: 32768
+      },
+      {
+        name: 'Gemini Pro Vision',
+        id: 'gemini-pro-vision',
+        description: 'Best performance for text and vision tasks',
+        maxTokens: 32768
       }
-    ],
-    defaultModel: 'gemini-pro'
+    ]
   },
   {
-    name: 'mistral',
+    name: 'Mistral',
+    envKey: 'MISTRAL_API_KEY',
+    description: 'Mistral models',
+    defaultModel: 'mistral-large-latest',
     models: [
       {
-        id: 'mistral-large',
         name: 'Mistral Large',
+        id: 'mistral-large-latest',
         description: 'Most capable Mistral model',
-        maxTokens: 32000
+        maxTokens: 32768
       },
       {
-        id: 'mistral-medium',
         name: 'Mistral Medium',
-        description: 'Balanced performance and capabilities',
-        maxTokens: 32000
+        id: 'mistral-medium-latest',
+        description: 'Balanced performance and speed',
+        maxTokens: 32768
       },
       {
-        id: 'mistral-small',
         name: 'Mistral Small',
-        description: 'Fast and efficient model',
-        maxTokens: 32000
+        id: 'mistral-small-latest',
+        description: 'Fast and efficient',
+        maxTokens: 32768
       }
-    ],
-    defaultModel: 'mistral-small'
+    ]
   },
   {
-    name: 'cohere',
+    name: 'Cohere',
+    envKey: 'COHERE_API_KEY',
+    description: 'Command and Generate models',
+    defaultModel: 'command',
     models: [
       {
-        id: 'command',
         name: 'Command',
-        description: 'Most capable Cohere model',
-        maxTokens: 4000
+        id: 'command',
+        description: 'Best for instruction following and chat',
+        maxTokens: 4096
       },
       {
-        id: 'command-light',
-        name: 'Command Light',
-        description: 'Faster, more efficient model',
-        maxTokens: 4000
+        name: 'Generate',
+        id: 'generate',
+        description: 'Best for creative text generation',
+        maxTokens: 4096
       }
-    ],
-    defaultModel: 'command'
+    ]
   }
 ];
