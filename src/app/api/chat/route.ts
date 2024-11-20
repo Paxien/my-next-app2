@@ -1,59 +1,171 @@
 import { NextResponse } from 'next/server';
-import * as fs from 'fs/promises';
-import path from 'path';
 
-const CONFIG_FILE = path.join(process.cwd(), 'src/app/config/ai-settings.json');
-
-async function getSettings() {
+export async function POST(req: Request) {
   try {
-    const settings = await fs.readFile(CONFIG_FILE, 'utf-8');
-    return JSON.parse(settings);
-  } catch (error) {
-    console.error('Error reading AI settings:', error);
-    throw new Error('Failed to read AI settings');
-  }
-}
+    const { message, provider, history } = await req.json();
 
-export async function POST(request: Request) {
-  try {
-    const { messages } = await request.json();
-    const settings = await getSettings();
-
-    if (!settings.openRouterApiKey) {
+    if (!message) {
       return NextResponse.json(
-        { error: 'Open Router API key not configured' },
+        { error: 'Message is required' },
         { status: 400 }
       );
     }
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${settings.openRouterApiKey}`,
-        'HTTP-Referer': process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
-        'X-Title': 'Next.js Chat Interface',
-      },
-      body: JSON.stringify({
-        model: settings.model || 'openai/gpt-3.5-turbo',
-        messages: messages,
-      }),
-    });
+    let response;
+    const apiKey = process.env[`${provider.toUpperCase()}_API_KEY`];
 
-    if (!response.ok) {
-      const error = await response.json();
+    if (!apiKey) {
       return NextResponse.json(
-        { error: error.message || 'Failed to get AI response' },
-        { status: response.status }
+        { error: `${provider} API key not configured` },
+        { status: 400 }
       );
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    switch (provider) {
+      case 'openai':
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'gpt-3.5-turbo',
+            messages: [
+              ...history.map((msg: any) => ({
+                role: msg.role,
+                content: msg.content
+              })),
+              { role: 'user', content: message }
+            ]
+          })
+        });
+        const openaiData = await openaiResponse.json();
+        response = openaiData.choices[0]?.message?.content || '';
+        break;
+
+      case 'anthropic':
+        const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'claude-3-opus-20240229',
+            max_tokens: 1024,
+            messages: [
+              ...history.map((msg: any) => ({
+                role: msg.role === 'assistant' ? 'assistant' : 'user',
+                content: msg.content
+              })),
+              { role: 'user', content: message }
+            ]
+          })
+        });
+        const anthropicData = await anthropicResponse.json();
+        response = anthropicData.content[0]?.text || '';
+        break;
+
+      case 'openrouter':
+        const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'openai/gpt-3.5-turbo',
+            messages: [
+              ...history.map((msg: any) => ({
+                role: msg.role,
+                content: msg.content
+              })),
+              { role: 'user', content: message }
+            ]
+          })
+        });
+        const openRouterData = await openRouterResponse.json();
+        response = openRouterData.choices[0]?.message?.content || '';
+        break;
+
+      case 'google':
+        const googleResponse = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: [...history.map((msg: any) => msg.content), message].join('\n')
+                  }
+                ]
+              }
+            ]
+          }),
+          params: {
+            key: apiKey
+          }
+        });
+        const googleData = await googleResponse.json();
+        response = googleData.candidates[0]?.content?.parts[0]?.text || '';
+        break;
+
+      case 'mistral':
+        const mistralResponse = await fetch('https://api.mistral.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'mistral-tiny',
+            messages: [
+              ...history.map((msg: any) => ({
+                role: msg.role,
+                content: msg.content
+              })),
+              { role: 'user', content: message }
+            ]
+          })
+        });
+        const mistralData = await mistralResponse.json();
+        response = mistralData.choices[0]?.message?.content || '';
+        break;
+
+      case 'cohere':
+        const cohereResponse = await fetch('https://api.cohere.ai/v1/generate', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            prompt: [...history.map((msg: any) => msg.content), message].join('\n'),
+            model: 'command',
+            max_tokens: 500
+          })
+        });
+        const cohereData = await cohereResponse.json();
+        response = cohereData.generations[0]?.text || '';
+        break;
+
+      default:
+        return NextResponse.json(
+          { error: 'Invalid provider' },
+          { status: 400 }
+        );
+    }
+
+    return NextResponse.json({ message: response });
   } catch (error) {
-    console.error('Error in chat API:', error);
+    console.error('Chat error:', error);
     return NextResponse.json(
-      { error: 'Failed to process chat request' },
+      { error: 'Failed to process message' },
       { status: 500 }
     );
   }
