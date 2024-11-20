@@ -9,7 +9,9 @@ interface NodeChanges {
 }
 
 interface InspectorPanelProps {
-  node?: {
+  title: string;
+  icon: React.ReactElement;
+  node: {
     id: string;
     position: { x: number; y: number };
     style?: { background?: string; borderWidth?: number };
@@ -17,21 +19,13 @@ interface InspectorPanelProps {
   onChange?: (changes: NodeChanges) => void;
 }
 
-export function InspectorPanel({ node, onChange }: InspectorPanelProps) {
-  if (!node) {
-    return (
-      <div className="p-4 text-center text-muted-foreground">
-        Select a node to inspect its properties
-      </div>
-    );
-  }
-
+export function InspectorPanel({ title, icon, node, onChange }: InspectorPanelProps) {
   const handlePositionChange = (axis: 'x' | 'y', value: string) => {
     const numValue = parseInt(value);
     if (!isNaN(numValue) && onChange) {
       onChange({
         position: {
-          ...node.position,
+          ...node?.position,
           [axis]: numValue
         }
       });
@@ -40,17 +34,28 @@ export function InspectorPanel({ node, onChange }: InspectorPanelProps) {
 
   const handleStyleChange = (property: 'background' | 'borderWidth', value: string) => {
     if (onChange) {
+      const numValue = property === 'borderWidth' ? parseInt(value) : undefined;
       onChange({
         style: {
-          ...node.style,
-          [property]: property === 'borderWidth' ? parseInt(value) : value
+          ...node?.style,
+          [property]: numValue ?? value
         }
       });
     }
   };
 
+  if (!node) {
+    return (
+      <div className="h-full flex flex-col" title={title} icon={icon}>
+        <div className="p-4 text-center text-muted-foreground">
+          Select a node to inspect its properties
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-full flex flex-col" title="Inspector" icon={<Settings className="h-5 w-5" />}>
+    <div className="h-full flex flex-col" title={title} icon={icon}>
       <ScrollArea className="flex-1">
         <div className="space-y-4 p-4">
           <div>

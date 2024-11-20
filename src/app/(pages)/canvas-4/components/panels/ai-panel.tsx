@@ -4,40 +4,44 @@ import { ScrollArea } from "@/components/scroll-area";
 import { Send, MessageSquare } from "lucide-react";
 import { useState } from "react";
 
-interface AIPanelProps {
-  // No props defined
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
 }
 
-export function AIPanel(props: AIPanelProps) {
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+interface AIPanelProps {
+  title: string;
+  icon: React.ReactElement;
+}
+
+export function AIPanel({ title, icon }: AIPanelProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    // Add user message
-    setMessages((prev) => [...prev, { role: 'user', content: input }]);
-    
-    // Clear input
+    const userMessage = { role: 'user' as const, content: input };
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
 
-    // Simulate AI response (placeholder)
+    // Simulate AI response
     setTimeout(() => {
-      setMessages((prev) => [
+      setMessages(prev => [
         ...prev,
         {
           role: 'assistant',
-          content: 'This is a placeholder response. AI chat functionality will be implemented soon.',
-        },
+          content: 'This is a simulated AI response. The actual AI integration will be implemented soon.'
+        }
       ]);
     }, 1000);
   };
 
   return (
-    <div className="flex flex-col h-full" title="AI Chat" icon={<MessageSquare className="h-5 w-5" />}>
+    <div className="flex flex-col h-full" title={title} icon={icon}>
       <div className="flex-none p-4 border-b">
-        <h3 className="font-medium">AI Assistant</h3>
+        <h3 className="font-medium">{title}</h3>
       </div>
 
       <ScrollArea className="flex-1 p-4">
@@ -45,15 +49,13 @@ export function AIPanel(props: AIPanelProps) {
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`flex ${
-                message.role === 'user' ? 'justify-end' : 'justify-start'
-              }`}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[80%] rounded-lg p-3 ${
+                className={`max-w-[80%] rounded-lg px-4 py-2 ${
                   message.role === 'user'
-                    ? 'bg-primary text-primary-foreground ml-4'
-                    : 'bg-muted mr-4'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted'
                 }`}
               >
                 {message.content}
@@ -69,13 +71,12 @@ export function AIPanel(props: AIPanelProps) {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
+            placeholder="Ask the AI assistant..."
             className="flex-1 px-3 py-2 bg-background border rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <button
             type="submit"
-            className="p-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
-            disabled={!input.trim()}
+            className="px-3 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <Send className="h-4 w-4" />
           </button>

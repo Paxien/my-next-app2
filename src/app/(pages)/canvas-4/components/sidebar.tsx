@@ -1,12 +1,19 @@
 'use client';
 
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
+import { ChevronLeft, ChevronRight, GripVertical, ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ReactElement } from "react";
+
+interface PanelProps {
+  title: string;
+  icon: ReactElement;
+}
 
 interface SidebarProps {
-  children: React.ReactNode;
+  children: ReactElement<PanelProps>[];
   side: 'left' | 'right';
+  defaultPanel?: number;
 }
 
 const MIN_WIDTH = 48;
@@ -14,10 +21,13 @@ const ICON_THRESHOLD = 100;
 const MAX_WIDTH = 600;
 const DEFAULT_WIDTH = 320;
 
-export function Sidebar({ children, side }: SidebarProps) {
+export function Sidebar({ children, side, defaultPanel = 0 }: SidebarProps) {
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
+  const [activePanel, setActivePanel] = useState(defaultPanel);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef<number>(0);
   const startWidthRef = useRef<number>(0);
 
@@ -53,6 +63,20 @@ export function Sidebar({ children, side }: SidebarProps) {
     setWidth(width === MIN_WIDTH ? DEFAULT_WIDTH : MIN_WIDTH);
   };
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   useEffect(() => {
     window.addEventListener('mousemove', resize);
     window.addEventListener('mouseup', stopResizing);
@@ -61,6 +85,9 @@ export function Sidebar({ children, side }: SidebarProps) {
       window.removeEventListener('mouseup', stopResizing);
     };
   }, [resize, stopResizing]);
+
+  const panels = Array.isArray(children) ? children : [children];
+  const activeChild = panels[activePanel];
 
   return (
     <aside
@@ -73,24 +100,68 @@ export function Sidebar({ children, side }: SidebarProps) {
       )}
       style={{ width }}
     >
+      {/* Panel Selection Header */}
+      {!isIconMode && (
+        <div className="h-10 min-h-[40px] flex items-center px-2 border-b relative" ref={dropdownRef}>
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="flex items-center justify-between w-full px-2 py-1 text-sm hover:bg-accent rounded-sm"
+          >
+            <span className="font-medium">{activeChild.props.title}</span>
+            <ChevronDown className="h-4 w-4 ml-2" />
+          </button>
+
+          {/* Dropdown Menu */}
+          {isDropdownOpen && (
+            <div className="absolute top-full left-0 right-0 bg-background border rounded-sm shadow-md z-50 py-1 mt-1">
+              {panels.map((panel, index) => (
+                <button
+                  key={index}
+                  className={cn(
+                    "flex items-center w-full px-3 py-1.5 text-sm",
+                    "hover:bg-accent/50",
+                    activePanel === index && "bg-accent"
+                  )}
+                  onClick={() => {
+                    setActivePanel(index);
+                    setIsDropdownOpen(false);
+                  }}
+                >
+                  <span className="w-5 h-5 mr-2 flex items-center justify-center">
+                    {panel.props.icon}
+                  </span>
+                  {panel.props.title}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Panel Content */}
       <div className={cn(
         "flex-1 overflow-auto relative",
         isIconMode && "px-2 py-2"
       )}>
         {isIconMode ? (
           <div className="flex flex-col items-center space-y-4">
-            {Array.isArray(children) ? children.map((child, index) => (
-              <div key={index} className="w-8 h-8 rounded-md hover:bg-accent flex items-center justify-center">
-                {child?.props?.icon || child?.props?.title?.charAt(0)}
-              </div>
-            )) : (
-              <div className="w-8 h-8 rounded-md hover:bg-accent flex items-center justify-center">
-                {children?.props?.icon || children?.props?.title?.charAt(0)}
-              </div>
-            )}
+            {panels.map((panel, index) => (
+              <button
+                key={index}
+                className={cn(
+                  "w-8 h-8 rounded-md flex items-center justify-center",
+                  "hover:bg-accent/50 transition-colors",
+                  activePanel === index && "bg-accent"
+                )}
+                onClick={() => setActivePanel(index)}
+                title={panel.props.title}
+              >
+                {panel.props.icon}
+              </button>
+            ))}
           </div>
         ) : (
-          children
+          activeChild
         )}
       </div>
 
@@ -103,7 +174,6 @@ export function Sidebar({ children, side }: SidebarProps) {
             side === 'left' ? '-right-2' : '-left-2',
             "w-4 cursor-col-resize flex items-center justify-center",
             isResizing && "cursor-grabbing",
-            // Show highlight area on hover
             "before:absolute before:top-0 before:bottom-0 before:w-1",
             "before:opacity-0 hover:before:opacity-100 before:transition-opacity",
             "before:bg-accent/50",
@@ -111,7 +181,6 @@ export function Sidebar({ children, side }: SidebarProps) {
           )}
           onMouseDown={startResizing}
         >
-          {/* Visual grip indicator */}
           <div className={cn(
             "opacity-0 group-hover:opacity-100 transition-opacity",
             "text-muted-foreground/50"
@@ -128,7 +197,7 @@ export function Sidebar({ children, side }: SidebarProps) {
           "absolute top-1/2 -translate-y-1/2 p-1.5 rounded-sm",
           "bg-background border hover:bg-accent",
           "transition-colors duration-150",
-          "z-10", // Ensure it's above the resize handle
+          "z-10",
           side === 'left' ? (
             "right-0 translate-x-1/2 border-r-0"
           ) : (

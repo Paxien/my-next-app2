@@ -13,6 +13,7 @@ import ReactFlow, {
   useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { Layers, MessageSquare, Settings } from 'lucide-react';
 
 import { Sidebar } from './components/sidebar';
 import { InspectorPanel } from './components/panels/inspector-panel';
@@ -104,13 +105,20 @@ function Flow() {
     <div className="h-[calc(100vh-var(--header-height))] flex">
       <Sidebar side="left">
         <HierarchyPanel
+          title="Hierarchy"
+          icon={<Layers className="h-5 w-5" />}
           nodes={nodes}
+          selectedNodeId={selectedNode?.id}
           onNodeClick={(nodeId) => {
             const node = nodes.find((n) => n.id === nodeId);
             if (node) setSelectedNode(node);
           }}
           onNodeAdd={handleNodeAdd}
           onNodeDelete={handleNodeDelete}
+        />
+        <AIPanel
+          title="AI Chat"
+          icon={<MessageSquare className="h-5 w-5" />}
         />
       </Sidebar>
 
@@ -145,10 +153,11 @@ function Flow() {
 
       <Sidebar side="right">
         <InspectorPanel
+          title="Inspector"
+          icon={<Settings className="h-5 w-5" />}
           node={selectedNode}
           onChange={handleNodeChange}
         />
-        <AIPanel />
       </Sidebar>
     </div>
   );

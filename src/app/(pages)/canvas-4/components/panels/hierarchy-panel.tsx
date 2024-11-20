@@ -3,6 +3,7 @@
 import { ScrollArea } from "@/components/scroll-area";
 import { ChevronRight, Plus, Trash2, Layers } from "lucide-react";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface Node {
   id: string;
@@ -10,59 +11,65 @@ interface Node {
 }
 
 interface HierarchyPanelProps {
+  title: string;
+  icon: React.ReactElement;
   nodes: Node[];
+  selectedNodeId?: string;
   onNodeClick?: (nodeId: string) => void;
   onNodeAdd?: () => void;
   onNodeDelete?: (nodeId: string) => void;
 }
 
-export function HierarchyPanel({ nodes, onNodeClick, onNodeAdd, onNodeDelete }: HierarchyPanelProps) {
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+export function HierarchyPanel({
+  title,
+  icon,
+  nodes,
+  selectedNodeId,
+  onNodeClick,
+  onNodeAdd,
+  onNodeDelete
+}: HierarchyPanelProps) {
+  const [localSelectedNodeId, setLocalSelectedNodeId] = useState<string | null>(selectedNodeId);
 
   const handleNodeClick = (nodeId: string) => {
-    setSelectedNodeId(nodeId);
+    setLocalSelectedNodeId(nodeId);
     onNodeClick?.(nodeId);
   };
 
   return (
-    <div className="flex flex-col h-full" title="Hierarchy" icon={<Layers className="h-5 w-5" />}>
+    <div className="h-full flex flex-col" title={title} icon={icon}>
       <div className="flex items-center justify-between p-4 border-b">
-        <h3 className="font-medium">Scene Hierarchy</h3>
+        <h3 className="font-medium">{title}</h3>
         <button
           onClick={onNodeAdd}
           className="p-2 rounded-md hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
-          aria-label="Add node"
         >
           <Plus className="h-4 w-4" />
         </button>
       </div>
+
       <ScrollArea className="flex-1">
-        <div className="space-y-1 p-4">
+        <div className="p-4 space-y-2">
           {nodes.map((node) => (
             <div
               key={node.id}
-              className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md group ${
-                selectedNodeId === node.id
-                  ? 'bg-accent'
-                  : 'hover:bg-accent/50'
-              }`}
-            >
-              <button
-                className="flex items-center gap-2 flex-1 text-left"
-                onClick={() => handleNodeClick(node.id)}
-              >
-                <ChevronRight className="h-4 w-4 flex-shrink-0" />
-                <span className="truncate">{node.data.label}</span>
-              </button>
-              {onNodeDelete && (
-                <button
-                  onClick={() => onNodeDelete(node.id)}
-                  className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
-                  aria-label={`Delete ${node.data.label}`}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+              className={cn(
+                "flex items-center space-x-2 p-2 rounded-md cursor-pointer",
+                localSelectedNodeId === node.id ? "bg-accent" : "hover:bg-accent/50"
               )}
+              onClick={() => handleNodeClick(node.id)}
+            >
+              <ChevronRight className="h-4 w-4 flex-none" />
+              <span className="flex-1">{node.data.label}</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNodeDelete?.(node.id);
+                }}
+                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-accent rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
           ))}
         </div>
