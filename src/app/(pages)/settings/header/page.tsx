@@ -27,6 +27,75 @@ const heightOptions = [
   { value: 'h-20', label: 'Large' },
 ];
 
+const logoPositionOptions = [
+  { value: 'start', label: 'Left' },
+  { value: 'center', label: 'Center' },
+];
+
+const navAlignmentOptions = [
+  { value: 'start', label: 'Left' },
+  { value: 'center', label: 'Center' },
+  { value: 'end', label: 'Right' },
+];
+
+const navSpacingOptions = [
+  { value: 'space-x-4', label: 'Compact' },
+  { value: 'space-x-6', label: 'Medium' },
+  { value: 'space-x-8', label: 'Large' },
+  { value: 'space-x-10', label: 'Extra Large' },
+];
+
+const navPaddingOptions = [
+  { value: 'px-2', label: 'Small' },
+  { value: 'px-4', label: 'Medium' },
+  { value: 'px-6', label: 'Large' },
+];
+
+const navStyleOptions = [
+  { value: 'default', label: 'Default' },
+  { value: 'solid', label: 'Solid' },
+  { value: 'outline', label: 'Outline' },
+  { value: 'ghost', label: 'Ghost' },
+];
+
+const navHoverEffectOptions = [
+  { value: 'hover:bg-gray-100 dark:hover:bg-gray-700', label: 'Light Background' },
+  { value: 'hover:bg-primary/90', label: 'Primary Color' },
+  { value: 'hover:bg-secondary/90', label: 'Secondary Color' },
+  { value: 'hover:scale-105', label: 'Scale Up' },
+];
+
+const navRoundedOptions = [
+  { value: 'rounded-none', label: 'None' },
+  { value: 'rounded-sm', label: 'Small' },
+  { value: 'rounded-md', label: 'Medium' },
+  { value: 'rounded-lg', label: 'Large' },
+  { value: 'rounded-full', label: 'Full' },
+];
+
+const navButtonVariantOptions = [
+  { value: 'ghost', label: 'Ghost' },
+  { value: 'default', label: 'Default' },
+  { value: 'secondary', label: 'Secondary' },
+  { value: 'outline', label: 'Outline' },
+];
+
+const buttonSpacingOptions = [
+  { value: 'space-x-1', label: 'Extra Small' },
+  { value: 'space-x-2', label: 'Small' },
+  { value: 'space-x-3', label: 'Medium' },
+  { value: 'space-x-4', label: 'Large' },
+  { value: 'space-x-6', label: 'Extra Large' },
+];
+
+const buttonPaddingOptions = [
+  { value: 'px-2 py-1', label: 'Extra Small' },
+  { value: 'px-3 py-1.5', label: 'Small' },
+  { value: 'px-4 py-2', label: 'Medium' },
+  { value: 'px-5 py-2.5', label: 'Large' },
+  { value: 'px-6 py-3', label: 'Extra Large' },
+];
+
 export default function HeaderSettingsPage() {
   const { settings, updateSettings, resetSettings } = useHeaderSettings();
 
@@ -106,6 +175,156 @@ export default function HeaderSettingsPage() {
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium mb-1">Logo Position</label>
+                  <select
+                    value={settings.logoPosition}
+                    onChange={(e) => updateSettings({ logoPosition: e.target.value })}
+                    className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                  >
+                    {logoPositionOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Navigation Alignment</label>
+                  <select
+                    value={settings.navAlignment}
+                    onChange={(e) => updateSettings({ navAlignment: e.target.value })}
+                    className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                  >
+                    {navAlignmentOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Navigation Spacing</label>
+                  <select
+                    value={settings.navSpacing}
+                    onChange={(e) => updateSettings({ navSpacing: e.target.value })}
+                    className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                  >
+                    {navSpacingOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Navigation Padding</label>
+                  <select
+                    value={settings.navPadding}
+                    onChange={(e) => updateSettings({ navPadding: e.target.value })}
+                    className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                  >
+                    {navPaddingOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Navigation Style</label>
+                  <select
+                    value={settings.navStyle}
+                    onChange={(e) => updateSettings({ navStyle: e.target.value })}
+                    className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                  >
+                    {navStyleOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Button Variant</label>
+                  <select
+                    value={settings.navButtonVariant}
+                    onChange={(e) => updateSettings({ navButtonVariant: e.target.value })}
+                    className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                  >
+                    {navButtonVariantOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Hover Effect</label>
+                  <select
+                    value={settings.navHoverEffect}
+                    onChange={(e) => updateSettings({ navHoverEffect: e.target.value })}
+                    className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                  >
+                    {navHoverEffectOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Button Rounding</label>
+                  <select
+                    value={settings.navRounded}
+                    onChange={(e) => updateSettings({ navRounded: e.target.value })}
+                    className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                  >
+                    {navRoundedOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Button Spacing</label>
+                  <select
+                    value={settings.navButtonSpacing}
+                    onChange={(e) => updateSettings({ navButtonSpacing: e.target.value })}
+                    className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                  >
+                    {buttonSpacingOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Button Padding</label>
+                  <select
+                    value={settings.navButtonPadding}
+                    onChange={(e) => updateSettings({ navButtonPadding: e.target.value })}
+                    className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                  >
+                    {buttonPaddingOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="flex items-center justify-between py-2">
                   <div>
                     <label className="block text-sm font-medium">Sticky Header</label>
@@ -132,6 +351,21 @@ export default function HeaderSettingsPage() {
                     type="checkbox"
                     checked={settings.showShadow}
                     onChange={(e) => updateSettings({ showShadow: e.target.checked })}
+                    className="h-4 w-4"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between py-2">
+                  <div>
+                    <label className="block text-sm font-medium">Boxed Layout</label>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      Constrain header content to maximum width
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.isBoxed}
+                    onChange={(e) => updateSettings({ isBoxed: e.target.checked })}
                     className="h-4 w-4"
                   />
                 </div>

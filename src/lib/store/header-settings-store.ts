@@ -18,6 +18,18 @@ interface HeaderSettings {
   opacity: number;
   blur: boolean;
   blurStrength: string;
+  logoPosition: string;
+  navAlignment: string;
+  navSpacing: string;
+  navPadding: string;
+  navStyle: string;
+  navHoverEffect: string;
+  navRounded: string;
+  navButtonVariant: string;
+  navButtonSpacing: string;
+  navButtonPadding: string;
+  navContainerPosition: string;
+  navContainerHeight: string;
 }
 
 interface HeaderSettingsStore {
@@ -42,7 +54,19 @@ const defaultSettings: HeaderSettings = {
   borderColor: 'border-gray-200 dark:border-gray-700',
   opacity: 100,
   blur: false,
-  blurStrength: 'backdrop-blur-sm'
+  blurStrength: 'backdrop-blur-sm',
+  logoPosition: 'start',
+  navAlignment: 'center',
+  navSpacing: 'space-x-4',
+  navPadding: 'px-4',
+  navStyle: 'default',
+  navHoverEffect: 'hover:bg-gray-100 dark:hover:bg-gray-700',
+  navRounded: 'rounded-md',
+  navButtonVariant: 'ghost',
+  navButtonSpacing: 'space-x-2',
+  navButtonPadding: 'px-4 py-2',
+  navContainerPosition: 'items-center',
+  navContainerHeight: 'h-full',
 };
 
 export const useHeaderSettings = create<HeaderSettingsStore>()(

@@ -46,31 +46,58 @@ export default function PagesLayout({
         style={headerStyle}
       >
         <div className={cn(
-          'mx-auto',
+          'w-full mx-auto',
           settings.isBoxed ? settings.maxWidth : '',
           settings.padding
         )}>
           <div className={cn(
             'flex h-full items-center',
-            settings.contentAlignment
+            settings.contentAlignment,
+            settings.isBoxed ? '' : settings.maxWidth + ' mx-auto'
           )}>
-            <div className="flex items-center space-x-4">
-              <div className="flex-shrink-0">
+            <div className={cn(
+              'flex items-center w-full',
+              settings.navAlignment === 'center' ? 'justify-center' : 'justify-between'
+            )}>
+              <div className={cn(
+                'flex-shrink-0',
+                settings.logoPosition === 'center' && 'absolute left-1/2 transform -translate-x-1/2'
+              )}>
                 <Link href="/" className={cn("font-bold", settings.fontSize)}>
                   Logo
                 </Link>
               </div>
-              <div className="hidden sm:flex sm:space-x-8">
+              <nav className={cn(
+                'hidden sm:flex',
+                settings.navButtonSpacing,
+                settings.navPadding,
+                settings.navAlignment === 'center' ? 'flex-1 justify-center' : 
+                settings.navAlignment === 'end' ? 'justify-end' : 'justify-start',
+                settings.logoPosition === 'center' && 'relative'
+              )}>
                 {navItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={cn("inline-flex items-center px-1 pt-1", settings.fontSize)}
+                    className={cn(
+                      "inline-flex items-center transition-colors duration-200",
+                      settings.navButtonPadding,
+                      settings.fontSize,
+                      settings.navRounded,
+                      settings.navHoverEffect,
+                      settings.navButtonVariant === 'ghost' && 'hover:bg-gray-100 dark:hover:bg-gray-700',
+                      settings.navButtonVariant === 'default' && 'bg-primary text-primary-foreground hover:bg-primary/90',
+                      settings.navButtonVariant === 'secondary' && 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+                      settings.navButtonVariant === 'outline' && 'border border-input hover:bg-accent hover:text-accent-foreground',
+                      settings.navStyle === 'solid' && 'bg-gray-100 dark:bg-gray-700',
+                      settings.navStyle === 'outline' && 'border border-gray-200 dark:border-gray-600',
+                    )}
                   >
                     {item.name}
                   </Link>
                 ))}
-              </div>
+              </nav>
+              {settings.navAlignment === 'center' && <div className="flex-shrink-0 w-[60px]" />}
             </div>
           </div>
         </div>
