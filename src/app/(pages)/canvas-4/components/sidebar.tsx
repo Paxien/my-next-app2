@@ -32,14 +32,17 @@ export function Sidebar({ children, side, defaultPanel = 0 }: SidebarProps) {
   const startXRef = useRef<number>(0);
   const startWidthRef = useRef<number>(0);
   const lastWidthRef = useRef<number>(DEFAULT_WIDTH);
+  const resizingTypeRef = useRef<'handle' | 'toggle' | null>(null);
 
   const isIconMode = width <= ICON_THRESHOLD;
 
-  const startResizing = useCallback((e: React.MouseEvent) => {
+  const startResizing = useCallback((e: React.MouseEvent, type: 'handle' | 'toggle') => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent toggle when starting resize from toggle button
     setIsResizing(true);
     startXRef.current = e.clientX;
     startWidthRef.current = isCollapsed ? MIN_WIDTH : width;
+    resizingTypeRef.current = type;
     if (isCollapsed) {
       setIsCollapsed(false);
       setWidth(MIN_WIDTH);
@@ -48,14 +51,23 @@ export function Sidebar({ children, side, defaultPanel = 0 }: SidebarProps) {
 
   const stopResizing = useCallback(() => {
     setIsResizing(false);
+    resizingTypeRef.current = null;
   }, []);
 
   const resize = useCallback((e: MouseEvent) => {
     if (!isResizing) return;
 
-    const delta = side === 'left' 
-      ? e.clientX - startXRef.current
-      : startXRef.current - e.clientX;
+    let delta: number;
+    if (resizingTypeRef.current === 'toggle') {
+      // When resizing from toggle button, reverse the direction for more intuitive dragging
+      delta = side === 'left'
+        ? startXRef.current - e.clientX
+        : e.clientX - startXRef.current;
+    } else {
+      delta = side === 'left'
+        ? e.clientX - startXRef.current
+        : startXRef.current - e.clientX;
+    }
 
     const newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, startWidthRef.current + delta));
     setWidth(newWidth);
@@ -65,16 +77,19 @@ export function Sidebar({ children, side, defaultPanel = 0 }: SidebarProps) {
     }
   }, [isResizing, side]);
 
-  const toggleExpand = () => {
-    if (isCollapsed) {
-      setIsCollapsed(false);
-      setWidth(lastWidthRef.current);
-    } else {
-      lastWidthRef.current = width;
-      setIsCollapsed(true);
-      setWidth(MIN_WIDTH);
+  const toggleExpand = useCallback((e: React.MouseEvent) => {
+    // Only toggle if we're not resizing
+    if (!isResizing) {
+      if (isCollapsed) {
+        setIsCollapsed(false);
+        setWidth(lastWidthRef.current);
+      } else {
+        lastWidthRef.current = width;
+        setIsCollapsed(true);
+        setWidth(MIN_WIDTH);
+      }
     }
-  };
+  }, [isResizing, isCollapsed, width]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -184,13 +199,13 @@ export function Sidebar({ children, side, defaultPanel = 0 }: SidebarProps) {
           "select-none touch-none",
           side === 'left' ? '-right-2' : '-left-2',
           "w-4 cursor-col-resize flex items-center justify-center",
-          isResizing && "cursor-grabbing",
+          isResizing && resizingTypeRef.current === 'handle' && "cursor-grabbing",
           "hover:z-50",
           {
             'opacity-0 hover:opacity-100 transition-opacity': isCollapsed,
           }
         )}
-        onMouseDown={startResizing}
+        onMouseDown={(e) => startResizing(e, 'handle')}
       >
         <div className={cn(
           "absolute top-0 bottom-0 w-1 -z-10",
@@ -208,13 +223,10 @@ export function Sidebar({ children, side, defaultPanel = 0 }: SidebarProps) {
       </div>
 
       {/* Toggle button */}
-      <button
-        onClick={toggleExpand}
+      <div
         className={cn(
-          "absolute top-1/2 -translate-y-1/2 p-1.5 rounded-sm",
-          "bg-background border hover:bg-accent",
-          "transition-colors duration-150",
-          "z-10 shadow-sm",
+          "absolute top-1/2 -translate-y-1/2",
+          "z-10",
           side === 'left' ? (
             isCollapsed ? '-right-10' : '-right-3'
           ) : (
@@ -222,12 +234,25 @@ export function Sidebar({ children, side, defaultPanel = 0 }: SidebarProps) {
           )
         )}
       >
-        {side === 'left' ? (
-          isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />
-        ) : (
-          isCollapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
-        )}
-      </button>
+        <button
+          onClick={toggleExpand}
+          onMouseDown={(e) => startResizing(e, 'toggle')}
+          className={cn(
+            "p-1.5 rounded-sm",
+            "bg-background border hover:bg-accent",
+            "transition-colors duration-150",
+            "shadow-sm",
+            isResizing && resizingTypeRef.current === 'toggle' && "cursor-grabbing",
+            !isResizing && "cursor-col-resize"
+          )}
+        >
+          {side === 'left' ? (
+            isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />
+          ) : (
+            isCollapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
+          )}
+        </button>
+      </div>
     </aside>
   );
 }
