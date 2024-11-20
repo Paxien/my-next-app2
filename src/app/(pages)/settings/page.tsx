@@ -27,7 +27,21 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Add more settings cards here as needed */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Header Navigation</CardTitle>
+              <CardDescription>
+                Customize the appearance and behavior of the main navigation header
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/settings/header">
+                <Button>
+                  Customize Header
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
