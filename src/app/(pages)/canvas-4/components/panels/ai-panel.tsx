@@ -1,10 +1,14 @@
 'use client';
 
 import { ScrollArea } from "@/components/scroll-area";
-import { Send } from "lucide-react";
+import { Send, MessageSquare } from "lucide-react";
 import { useState } from "react";
 
-export function AIPanel() {
+interface AIPanelProps {
+  // No props defined
+}
+
+export function AIPanel(props: AIPanelProps) {
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const [input, setInput] = useState('');
 
@@ -31,7 +35,7 @@ export function AIPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" title="AI Chat" icon={<MessageSquare className="h-5 w-5" />}>
       <div className="flex-none p-4 border-b">
         <h3 className="font-medium">AI Assistant</h3>
       </div>

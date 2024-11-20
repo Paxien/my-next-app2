@@ -1,7 +1,7 @@
 'use client';
 
 import { ScrollArea } from "@/components/scroll-area";
-import { ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronRight, Plus, Trash2, Layers } from "lucide-react";
 import { useState } from "react";
 
 interface Node {
@@ -25,7 +25,7 @@ export function HierarchyPanel({ nodes, onNodeClick, onNodeAdd, onNodeDelete }: 
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" title="Hierarchy" icon={<Layers className="h-5 w-5" />}>
       <div className="flex items-center justify-between p-4 border-b">
         <h3 className="font-medium">Scene Hierarchy</h3>
         <button
