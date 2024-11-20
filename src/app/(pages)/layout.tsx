@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { useHeaderSettings } from '@/lib/store/header-settings-store';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
-import { defaultNavItems } from '@/app/config/navigation';
-import type { NavItem } from '@/app/config/navigation';
+import { getNavigationItems } from '../actions/navigation';
+import type { NavItem } from '../config/navigation';
 
 export default function PagesLayout({
   children,
@@ -13,45 +13,54 @@ export default function PagesLayout({
   children: React.ReactNode;
 }) {
   const { settings } = useHeaderSettings();
-  const [navItems, setNavItems] = useState<NavItem[]>(defaultNavItems);
+  const [navItems, setNavItems] = useState<NavItem[]>([]);
 
   useEffect(() => {
     const loadNavItems = async () => {
-      try {
-        const response = await fetch('/api/navigation');
-        if (response.ok) {
-          const items = await response.json();
-          setNavItems(items.filter((item: NavItem) => item.showInNav));
-        }
-      } catch (error) {
-        console.error('Failed to load navigation items:', error);
-        // Fallback to default items
-        setNavItems(defaultNavItems.filter(item => item.showInNav));
-      }
+      const items = await getNavigationItems();
+      setNavItems(items.filter(item => item.showInNav));
     };
     loadNavItems();
   }, []);
 
+  const headerStyle = {
+    height: settings.height === 'custom' ? `${settings.customHeight}px` : undefined,
+    opacity: settings.opacity / 100,
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navigation */}
-      <nav className={cn(
-        settings.backgroundColor,
-        settings.textColor,
-        settings.height,
-        'w-full',
-        settings.isSticky && 'sticky top-0 z-50',
-        settings.showShadow && 'shadow'
-      )}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-full">
-            <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
+      <nav 
+        className={cn(
+          settings.backgroundColor,
+          settings.textColor,
+          settings.height !== 'custom' && settings.height,
+          'w-full transition-all duration-200',
+          settings.isSticky && 'sticky top-0 z-50',
+          settings.showShadow && 'shadow-md',
+          settings.borderBottom && 'border-b',
+          settings.borderColor,
+          settings.blur && settings.blurStrength
+        )}
+        style={headerStyle}
+      >
+        <div className={cn(
+          'mx-auto',
+          settings.isBoxed ? settings.maxWidth : '',
+          settings.padding
+        )}>
+          <div className={cn(
+            'flex h-full items-center',
+            settings.contentAlignment
+          )}>
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
                 <Link href="/" className={cn("font-bold", settings.fontSize)}>
                   Logo
                 </Link>
               </div>
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <div className="hidden sm:flex sm:space-x-8">
                 {navItems.map((item) => (
                   <Link
                     key={item.href}
@@ -68,7 +77,13 @@ export default function PagesLayout({
       </nav>
 
       {/* Page Content */}
-      {children}
+      <div className={cn(
+        'flex-1',
+        settings.isBoxed && settings.maxWidth,
+        settings.isBoxed && 'mx-auto'
+      )}>
+        {children}
+      </div>
     </div>
   );
 }
