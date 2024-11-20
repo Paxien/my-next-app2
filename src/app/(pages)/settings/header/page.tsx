@@ -96,6 +96,33 @@ const buttonPaddingOptions = [
   { value: 'px-6 py-3', label: 'Extra Large' },
 ];
 
+const containerPositionOptions = [
+  { value: 'items-start', label: 'Top' },
+  { value: 'items-center', label: 'Center' },
+  { value: 'items-end', label: 'Bottom' },
+  { value: 'items-stretch', label: 'Stretch' },
+];
+
+const containerHeightOptions = [
+  { value: 'h-auto', label: 'Auto' },
+  { value: 'h-full', label: 'Full Height' },
+  { value: 'h-3/4', label: '75% Height' },
+  { value: 'h-1/2', label: '50% Height' },
+];
+
+const headerPositionOptions = [
+  { value: 'items-start', label: 'Top' },
+  { value: 'items-center', label: 'Center' },
+  { value: 'items-end', label: 'Bottom' },
+];
+
+const headerHeightOptions = [
+  { value: 'h-full', label: 'Full Height' },
+  { value: 'h-[80%]', label: '80% Height' },
+  { value: 'h-[60%]', label: '60% Height' },
+  { value: 'h-[40%]', label: '40% Height' },
+];
+
 export default function HeaderSettingsPage() {
   const { settings, updateSettings, resetSettings } = useHeaderSettings();
 
@@ -323,6 +350,76 @@ export default function HeaderSettingsPage() {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                <div className="col-span-2">
+                  <h3 className="text-lg font-medium mb-4">Navigation Container</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Vertical Position</label>
+                      <select
+                        value={settings.navContainerPosition}
+                        onChange={(e) => updateSettings({ navContainerPosition: e.target.value })}
+                        className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                      >
+                        {containerPositionOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Container Height</label>
+                      <select
+                        value={settings.navContainerHeight}
+                        onChange={(e) => updateSettings({ navContainerHeight: e.target.value })}
+                        className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                      >
+                        {containerHeightOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="col-span-2">
+                  <h3 className="text-lg font-medium mb-4">Header Content Position</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Vertical Position</label>
+                      <select
+                        value={settings.headerContentPosition}
+                        onChange={(e) => updateSettings({ headerContentPosition: e.target.value })}
+                        className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                      >
+                        {headerPositionOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Content Height</label>
+                      <select
+                        value={settings.headerContentHeight}
+                        onChange={(e) => updateSettings({ headerContentHeight: e.target.value })}
+                        className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+                      >
+                        {headerHeightOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between py-2">

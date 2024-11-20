@@ -30,6 +30,8 @@ interface HeaderSettings {
   navButtonPadding: string;
   navContainerPosition: string;
   navContainerHeight: string;
+  headerContentPosition: string;
+  headerContentHeight: string;
 }
 
 interface HeaderSettingsStore {
@@ -67,6 +69,8 @@ const defaultSettings: HeaderSettings = {
   navButtonPadding: 'px-4 py-2',
   navContainerPosition: 'items-center',
   navContainerHeight: 'h-full',
+  headerContentPosition: 'items-center',
+  headerContentHeight: 'h-full',
 };
 
 export const useHeaderSettings = create<HeaderSettingsStore>()(

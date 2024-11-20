@@ -31,32 +31,34 @@ export default function PagesLayout({
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navigation */}
-      <nav 
+      <nav
         className={cn(
+          'w-full',
           settings.backgroundColor,
           settings.textColor,
-          settings.height !== 'custom' && settings.height,
-          'w-full transition-all duration-200',
+          settings.height,
           settings.isSticky && 'sticky top-0 z-50',
-          settings.showShadow && 'shadow-md',
+          settings.showShadow && 'shadow-sm',
           settings.borderBottom && 'border-b',
           settings.borderColor,
+          settings.opacity !== 100 && `opacity-${settings.opacity}`,
           settings.blur && settings.blurStrength
         )}
-        style={headerStyle}
       >
         <div className={cn(
+          'flex h-full',
+          settings.padding,
           'w-full mx-auto',
           settings.isBoxed ? settings.maxWidth : '',
-          settings.padding
         )}>
           <div className={cn(
-            'flex h-full items-center',
-            settings.contentAlignment,
+            'flex w-full',
+            settings.headerContentPosition,
+            settings.headerContentHeight,
             settings.isBoxed ? '' : settings.maxWidth + ' mx-auto'
           )}>
             <div className={cn(
-              'flex items-center w-full',
+              'flex w-full',
               settings.navAlignment === 'center' ? 'justify-center' : 'justify-between'
             )}>
               <div className={cn(
