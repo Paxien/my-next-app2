@@ -26,10 +26,12 @@ export function Sidebar({ children, side, defaultPanel = 0 }: SidebarProps) {
   const [isResizing, setIsResizing] = useState(false);
   const [activePanel, setActivePanel] = useState(defaultPanel);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef<number>(0);
   const startWidthRef = useRef<number>(0);
+  const lastWidthRef = useRef<number>(DEFAULT_WIDTH);
 
   const isIconMode = width <= ICON_THRESHOLD;
 
@@ -37,16 +39,16 @@ export function Sidebar({ children, side, defaultPanel = 0 }: SidebarProps) {
     e.preventDefault();
     setIsResizing(true);
     startXRef.current = e.clientX;
-    startWidthRef.current = width;
-  }, [width]);
+    startWidthRef.current = isCollapsed ? MIN_WIDTH : width;
+    if (isCollapsed) {
+      setIsCollapsed(false);
+      setWidth(MIN_WIDTH);
+    }
+  }, [width, isCollapsed]);
 
   const stopResizing = useCallback(() => {
     setIsResizing(false);
-    // Snap to icon mode if close enough
-    if (width < ICON_THRESHOLD + 20) {
-      setWidth(MIN_WIDTH);
-    }
-  }, [width]);
+  }, []);
 
   const resize = useCallback((e: MouseEvent) => {
     if (!isResizing) return;
@@ -57,10 +59,21 @@ export function Sidebar({ children, side, defaultPanel = 0 }: SidebarProps) {
 
     const newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, startWidthRef.current + delta));
     setWidth(newWidth);
+    
+    if (newWidth > MIN_WIDTH) {
+      lastWidthRef.current = newWidth;
+    }
   }, [isResizing, side]);
 
   const toggleExpand = () => {
-    setWidth(width === MIN_WIDTH ? DEFAULT_WIDTH : MIN_WIDTH);
+    if (isCollapsed) {
+      setIsCollapsed(false);
+      setWidth(lastWidthRef.current);
+    } else {
+      lastWidthRef.current = width;
+      setIsCollapsed(true);
+      setWidth(MIN_WIDTH);
+    }
   };
 
   // Close dropdown when clicking outside
@@ -94,8 +107,7 @@ export function Sidebar({ children, side, defaultPanel = 0 }: SidebarProps) {
       ref={sidebarRef}
       className={cn(
         "h-full bg-background flex flex-col relative",
-        "transition-[width] duration-300 ease-in-out",
-        !isResizing && "transition-[width]",
+        !isResizing && "transition-[width] duration-200 ease-in-out",
         side === 'left' ? 'border-r' : 'border-l'
       )}
       style={{ width }}
@@ -166,29 +178,34 @@ export function Sidebar({ children, side, defaultPanel = 0 }: SidebarProps) {
       </div>
 
       {/* Resize handle */}
-      {!isIconMode && (
-        <div
-          className={cn(
-            "absolute top-0 bottom-0 group",
-            "select-none touch-none",
-            side === 'left' ? '-right-2' : '-left-2',
-            "w-4 cursor-col-resize flex items-center justify-center",
-            isResizing && "cursor-grabbing",
-            "before:absolute before:top-0 before:bottom-0 before:w-1",
-            "before:opacity-0 hover:before:opacity-100 before:transition-opacity",
-            "before:bg-accent/50",
-            side === 'left' ? 'before:right-2' : 'before:left-2',
-          )}
-          onMouseDown={startResizing}
-        >
-          <div className={cn(
-            "opacity-0 group-hover:opacity-100 transition-opacity",
-            "text-muted-foreground/50"
-          )}>
-            <GripVertical className="h-4 w-4" />
-          </div>
+      <div
+        className={cn(
+          "absolute top-0 bottom-0 group",
+          "select-none touch-none",
+          side === 'left' ? '-right-2' : '-left-2',
+          "w-4 cursor-col-resize flex items-center justify-center",
+          isResizing && "cursor-grabbing",
+          "hover:z-50",
+          {
+            'opacity-0 hover:opacity-100 transition-opacity': isCollapsed,
+          }
+        )}
+        onMouseDown={startResizing}
+      >
+        <div className={cn(
+          "absolute top-0 bottom-0 w-1 -z-10",
+          "opacity-0 group-hover:opacity-100 transition-opacity",
+          "bg-accent/50",
+          side === 'left' ? 'right-2' : 'left-2'
+        )} />
+        <div className={cn(
+          "opacity-0 group-hover:opacity-100 transition-opacity",
+          "text-muted-foreground/50 bg-background rounded-md p-0.5",
+          "shadow-sm border"
+        )}>
+          <GripVertical className="h-4 w-4" />
         </div>
-      )}
+      </div>
 
       {/* Toggle button */}
       <button
@@ -197,27 +214,18 @@ export function Sidebar({ children, side, defaultPanel = 0 }: SidebarProps) {
           "absolute top-1/2 -translate-y-1/2 p-1.5 rounded-sm",
           "bg-background border hover:bg-accent",
           "transition-colors duration-150",
-          "z-10",
+          "z-10 shadow-sm",
           side === 'left' ? (
-            "right-0 translate-x-1/2 border-r-0"
+            isCollapsed ? '-right-10' : '-right-3'
           ) : (
-            "left-0 -translate-x-1/2 border-l-0"
+            isCollapsed ? '-left-10' : '-left-3'
           )
         )}
-        aria-label={isIconMode ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         {side === 'left' ? (
-          isIconMode ? (
-            <ChevronRight className="h-3 w-3" />
-          ) : (
-            <ChevronLeft className="h-3 w-3" />
-          )
+          isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />
         ) : (
-          isIconMode ? (
-            <ChevronLeft className="h-3 w-3" />
-          ) : (
-            <ChevronRight className="h-3 w-3" />
-          )
+          isCollapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
         )}
       </button>
     </aside>
