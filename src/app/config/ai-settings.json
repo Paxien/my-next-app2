@@ -1,0 +1,10 @@
+{
+  "model": "gpt-4",
+  "systemPrompt": "You are a helpful assistant.",
+  "openaiApiKey": "",
+  "anthropicApiKey": "",
+  "openRouterApiKey": "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",
+  "googleApiKey": "",
+  "mistralApiKey": "",
+  "cohereApiKey": ""
+}
