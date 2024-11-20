@@ -215,8 +215,8 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-4xl mx-auto p-4">
-      <div className="flex justify-between items-center mb-4">
+    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-4xl mx-auto px-4 py-2 gap-4">
+      <div className="flex justify-between items-center">
         <div className="flex-1">
           <Label htmlFor="provider" className="text-sm font-medium mb-1 block">AI Provider</Label>
           <Select
@@ -278,7 +278,7 @@ export default function ChatPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto mb-4 space-y-4">
+      <div className="flex-1 overflow-auto min-h-0 space-y-4 pr-2">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
             <Bot className="h-12 w-12 mb-4" />
@@ -325,7 +325,7 @@ export default function ChatPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="flex space-x-2">
+      <form onSubmit={handleSubmit} className="flex space-x-2 sticky bottom-0 bg-background pt-2 border-t">
         <Input
           ref={inputRef}
           value={input}

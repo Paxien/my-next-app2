@@ -34,6 +34,11 @@
       "name": "Chat",
       "href": "/chat",
       "showInNav": true
+    },
+    {
+      "name": "Canvas",
+      "href": "/canvas",
+      "showInNav": true
     }
   ]
 }
