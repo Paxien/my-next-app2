@@ -5,6 +5,7 @@ export interface AIModel {
   isFree: boolean;
   maxTokens: number;
   contextWindow?: number;
+  isFavorite?: boolean;
   pricing?: {
     prompt: number;
     completion: number;
@@ -13,9 +14,17 @@ export interface AIModel {
 
 export const defaultModels: AIModel[] = [
   {
-    id: 'meta-llama/llama-2-70b-chat',
-    name: 'Llama 2 70B Chat',
-    description: 'Meta\'s largest open-source chat model with exceptional coding capabilities',
+    id: 'meta-llama/llama-3-8b-instruct:free',
+    name: 'Llama 3 8B Instruct',
+    description: 'Latest Llama model optimized for instruction following and code generation',
+    isFree: true,
+    maxTokens: 4096,
+    contextWindow: 4096
+  },
+  {
+    id: 'mistralai/mistral-7b-instruct',
+    name: 'Mistral 7B Instruct',
+    description: 'Fast and efficient model for code analysis and generation',
     isFree: true,
     maxTokens: 4096,
     contextWindow: 4096
@@ -29,66 +38,51 @@ export const defaultModels: AIModel[] = [
     contextWindow: 8192
   },
   {
-    id: 'mistralai/mistral-7b-instruct',
-    name: 'Mistral 7B Instruct',
-    description: 'Efficient open-source model with great code understanding',
-    isFree: true,
-    maxTokens: 4096,
-    contextWindow: 4096
-  },
-  {
-    id: 'openchat/openchat-7b',
-    name: 'OpenChat 7B',
-    description: 'Open-source model optimized for dialogue and coding tasks',
-    isFree: true,
-    maxTokens: 4096,
-    contextWindow: 4096
-  },
-  {
-    id: 'google/palm-2-codechat-bison',
-    name: 'PaLM 2 Codechat',
-    description: 'Google\'s model specialized for code-related conversations',
-    isFree: true,
-    maxTokens: 8192,
-    contextWindow: 8192
-  },
-  {
-    id: 'phind/phind-codellama-34b',
-    name: 'Phind CodeLlama 34B',
-    description: 'Fine-tuned CodeLlama optimized for programming tasks',
-    isFree: true,
-    maxTokens: 8192,
-    contextWindow: 8192
-  },
-  {
-    id: 'meta-llama/llama-2-13b-chat',
-    name: 'Llama 2 13B Chat',
-    description: 'Efficient version of Llama 2 with good code understanding',
-    isFree: true,
-    maxTokens: 4096,
-    contextWindow: 4096
-  },
-  {
-    id: 'nousresearch/nous-hermes-llama2-13b',
-    name: 'Nous Hermes 13B',
-    description: 'Fine-tuned Llama 2 with enhanced coding capabilities',
+    id: 'meta-llama/llama-2-70b-chat',
+    name: 'Llama 2 70B Chat',
+    description: 'Meta\'s largest open-source chat model with exceptional coding capabilities',
     isFree: true,
     maxTokens: 4096,
     contextWindow: 4096
   }
 ];
 
-export async function fetchAvailableModels(): Promise<AIModel[]> {
-  try {
-    const response = await fetch('/api/ai/models');
-    if (!response.ok) {
-      console.error('Failed to fetch models');
-      return defaultModels;
-    }
-    const data = await response.json();
-    return data.models;
-  } catch (error) {
-    console.error('Error fetching models:', error);
-    return defaultModels;
+const FAVORITES_KEY = 'favorite-ai-models';
+
+export function saveFavoriteModels(favoriteIds: string[]): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favoriteIds));
   }
+}
+
+export function loadFavoriteModels(): string[] {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem(FAVORITES_KEY);
+    return saved ? JSON.parse(saved) : [];
+  }
+  return [];
+}
+
+export function toggleFavoriteModel(model: AIModel, models: AIModel[]): AIModel[] {
+  const favoriteIds = loadFavoriteModels();
+  const isCurrentlyFavorite = favoriteIds.includes(model.id);
+  
+  const updatedFavoriteIds = isCurrentlyFavorite
+    ? favoriteIds.filter(id => id !== model.id)
+    : [...favoriteIds, model.id];
+  
+  saveFavoriteModels(updatedFavoriteIds);
+  
+  return models.map(m => ({
+    ...m,
+    isFavorite: updatedFavoriteIds.includes(m.id)
+  }));
+}
+
+export async function fetchAvailableModels(): Promise<AIModel[]> {
+  const favoriteIds = loadFavoriteModels();
+  return defaultModels.map(model => ({
+    ...model,
+    isFavorite: favoriteIds.includes(model.id)
+  }));
 }

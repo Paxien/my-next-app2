@@ -134,53 +134,70 @@ export function AIChat({ onSendMessage, onCodeUpdate, className }: AIChatProps) 
     }
   };
 
-  const MessageContent = ({ content }: { content: string }) => (
-    <ReactMarkdown
-      className="prose prose-sm dark:prose-invert max-w-none"
-      components={{
-        pre: ({ node, ...props }) => (
-          <div className="relative group">
-            <pre {...props} className="bg-muted rounded-md p-4 overflow-x-auto" />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={() => navigator.clipboard.writeText(node?.children[0]?.children[0]?.value || '')}
-            >
-              Copy
-            </Button>
-          </div>
-        ),
-        code: ({ node, ...props }) => (
-          <code {...props} className="bg-muted px-1 py-0.5 rounded-sm" />
-        ),
-      }}
-    >
-      {content}
-    </ReactMarkdown>
-  );
+  const MessageContent = ({ content }: { content: string }) => {
+    // Clean up the content by removing extra newlines and normalizing spacing
+    const cleanContent = content
+      .replace(/\n{3,}/g, '\n\n') // Replace 3+ newlines with 2
+      .trim();
+
+    return (
+      <div className="break-words">
+        <ReactMarkdown
+          className="prose prose-sm dark:prose-invert max-w-none"
+          components={{
+            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+            pre: ({ node, ...props }) => (
+              <div className="relative group my-4 first:mt-0 last:mb-0">
+                <pre {...props} className="bg-muted rounded-md p-4 overflow-x-auto" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => {
+                    const code = node?.children[0]?.children[0]?.value || '';
+                    navigator.clipboard.writeText(code);
+                  }}
+                >
+                  Copy
+                </Button>
+              </div>
+            ),
+            code: ({ node, inline, ...props }) => (
+              inline ? 
+                <code {...props} className="bg-muted px-1.5 py-0.5 rounded-sm text-sm" /> :
+                <code {...props} className="bg-muted px-1.5 py-0.5 rounded-sm text-sm" />
+            ),
+          }}
+        >
+          {cleanContent}
+        </ReactMarkdown>
+      </div>
+    );
+  };
 
   return (
     <div className={cn('flex flex-col h-full bg-background', className)}>
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2">
-          <Bot className="h-5 w-5" />
-          <h2 className="text-lg font-semibold">AI Assistant</h2>
+      <div className="sticky top-0 z-10 bg-background border-b">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-2">
+            <Bot className="h-5 w-5" />
+            <h2 className="text-lg font-semibold">AI Assistant</h2>
+          </div>
+          <ModelSelector
+            selectedModel={currentModel}
+            models={availableModels}
+            onModelSelect={setCurrentModel}
+          />
         </div>
-        <ModelSelector
-          selectedModel={currentModel}
-          models={availableModels}
-          onModelSelect={setCurrentModel}
-        />
       </div>
 
-      <ScrollArea className="flex-1">
-        <div className="flex flex-col gap-4 p-4 min-h-full">
+      <ScrollArea className="flex-1 overflow-y-auto">
+        <div className="flex flex-col gap-6 p-4">
           {messages.map((message) => (
             <div
               key={message.id}
               className={cn(
-                'flex gap-2 max-w-[80%]',
+                'group flex gap-3 max-w-[85%] text-sm',
                 message.role === 'user' ? 'ml-auto' : 'mr-auto'
               )}
             >
@@ -188,7 +205,7 @@ export function AIChat({ onSendMessage, onCodeUpdate, className }: AIChatProps) 
                 <Bot className="h-5 w-5 mt-1 flex-shrink-0" />
               )}
               {message.role === 'user' && (
-                <User className="h-5 w-5 mt-1 flex-shrink-0" />
+                <User className="h-5 w-5 mt-1 flex-shrink-0 order-last" />
               )}
               {message.role === 'error' && (
                 <XCircle className="h-5 w-5 mt-1 flex-shrink-0 text-destructive" />
@@ -196,7 +213,7 @@ export function AIChat({ onSendMessage, onCodeUpdate, className }: AIChatProps) 
               
               <div
                 className={cn(
-                  'rounded-lg p-4',
+                  'rounded-lg px-4 py-3 min-w-[100px]',
                   message.role === 'user' && 'bg-primary text-primary-foreground',
                   message.role === 'assistant' && 'bg-muted',
                   message.role === 'error' && 'bg-destructive/10 text-destructive'
@@ -204,8 +221,8 @@ export function AIChat({ onSendMessage, onCodeUpdate, className }: AIChatProps) 
               >
                 <MessageContent content={message.content} />
                 {message.model && (
-                  <div className="text-xs opacity-50 mt-2">
-                    Model: {message.model}
+                  <div className="text-xs opacity-50 mt-2 pt-2 border-t">
+                    {message.model}
                   </div>
                 )}
               </div>
@@ -221,7 +238,7 @@ export function AIChat({ onSendMessage, onCodeUpdate, className }: AIChatProps) 
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t">
+      <div className="sticky bottom-0 z-10 p-4 bg-background border-t">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -238,7 +255,7 @@ export function AIChat({ onSendMessage, onCodeUpdate, className }: AIChatProps) 
             disabled={isLoading}
             className="flex-1"
           />
-          <Button type="submit" disabled={isLoading}>
+          <Button type="submit" disabled={isLoading || !currentMessage.trim()}>
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
