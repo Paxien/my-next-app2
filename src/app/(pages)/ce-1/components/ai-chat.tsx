@@ -81,10 +81,9 @@ export function AIChat({ onCodeChange }: AIChatProps) {
       <div className="flex items-center justify-between p-4 border-b">
         <h2 className="text-lg font-semibold">AI Assistant</h2>
         <ModelSelector
-          currentModel={currentModel}
-          availableModels={availableModels}
+          selectedModel={currentModel}
+          models={availableModels}
           onModelSelect={setCurrentModel}
-          className="w-[250px]"
         />
       </div>
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
