@@ -1,117 +1,127 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { CodeEditor } from './components/code-editor';
-import { AIChat } from './components/ai-chat';
-import { CodePreview } from './components/code-preview';
+import { useState, useEffect } from 'react';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from "@/components/ui/button";
+import { Eye, Settings2 } from "lucide-react";
+import dynamic from 'next/dynamic';
+import { LayoutSettings } from './components/layout-settings';
+import type { LayoutSettings as LayoutSettingsType } from './components/layout-settings';
 
-const initialCode = `function Welcome() {
-  const [count, setCount] = useState(0);
-  
-  return (
-    <div className="p-4 text-center">
-      <h1 className="text-2xl font-bold mb-4">Welcome to Live Preview</h1>
-      <p className="mb-4">Count: {count}</p>
-      <button
-        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        onClick={() => setCount(c => c + 1)}
-      >
-        Increment
-      </button>
-    </div>
-  );
-}`;
+// Dynamic imports to prevent SSR
+const AIChat = dynamic(() => 
+  import('./components/ai-chat').then((mod) => mod.AIChat), 
+  { ssr: false }
+);
 
-export default function CE1Page() {
-  const [code, setCode] = useState(initialCode);
+const CodeEditor = dynamic(() => 
+  import('./components/code-editor').then((mod) => mod.CodeEditor), 
+  { ssr: false }
+);
+
+const CodePreview = dynamic(() => 
+  import('./components/code-preview').then((mod) => mod.CodePreview), 
+  { ssr: false }
+);
+
+export default function CodeEditorPage() {
+  const [mounted, setMounted] = useState(false);
+  const [code, setCode] = useState('');
   const [language, setLanguage] = useState('typescript');
-  const editorRef = useRef<any>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [settings, setSettings] = useState<LayoutSettingsType>({
+    editorSize: 50,
+    theme: 'system',
+    fontSize: 14,
+    wordWrap: true,
+    minimap: true,
+    lineNumbers: true,
+  });
 
-  const handleCodeChange = (newCode: string | undefined) => {
-    if (newCode) setCode(newCode);
-  };
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const handleAIMessage = async (message: string) => {
-    try {
-      // Get the current editor state
-      const editorValue = editorRef.current?.getValue() || code;
-      
-      // Return the context for AI processing
-      return {
-        success: true,
-        data: {
-          currentCode: editorValue,
-          language,
-          message,
-          cursor: editorRef.current?.getPosition()
-        }
-      };
-    } catch (error) {
-      console.error('Error processing AI message:', error);
-      return {
-        success: false,
-        error: 'Failed to process message'
-      };
-    }
+  const handleCodeChange = (value: string | undefined) => {
+    setCode(value || '');
   };
 
   const handleCodeUpdate = (newCode: string) => {
-    if (editorRef.current) {
-      // Update the editor content
-      editorRef.current.setValue(newCode);
-      // Trigger the onChange event
-      setCode(newCode);
-    }
+    setCode(newCode);
   };
 
-  return (
-    <div className="fixed inset-0 flex flex-col">
-      <div className="flex-none h-12 border-b bg-background flex items-center px-4">
-        <h1 className="text-lg font-semibold">Code Editor</h1>
-      </div>
+  const handleSettingsChange = (newSettings: LayoutSettingsType) => {
+    setSettings(newSettings);
+  };
 
-      <div className="flex-1 min-h-0">
-        <ResizablePanelGroup direction="horizontal">
-          <ResizablePanel defaultSize={40}>
-            <CodeEditor
-              ref={editorRef}
-              initialValue={code}
-              language={language}
-              onChange={handleCodeChange}
+  if (!mounted) {
+    return null;
+  }
+
+  return (
+    <div className="h-[calc(100vh-var(--header-height))] overflow-hidden">
+      <ResizablePanelGroup direction="horizontal" className="h-full">
+        <ResizablePanel defaultSize={settings.editorSize}>
+          <div className="h-full relative">
+            <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPreview(!showPreview)}
+              >
+                <Eye className="h-4 w-4 mr-1" />
+                {showPreview ? 'Hide Preview' : 'Show Preview'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSettings(!showSettings)}
+              >
+                <Settings2 className="h-4 w-4 mr-1" />
+                Settings
+              </Button>
+            </div>
+            <div className="h-full">
+              <CodeEditor
+                initialValue={code}
+                language={language}
+                onChange={handleCodeChange}
+                className="h-full"
+                options={{
+                  fontSize: settings.fontSize,
+                  wordWrap: settings.wordWrap ? 'on' : 'off',
+                  minimap: { enabled: settings.minimap },
+                  lineNumbers: settings.lineNumbers ? 'on' : 'off',
+                }}
+              />
+            </div>
+            {showPreview && (
+              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm">
+                <CodePreview code={code} className="h-full" />
+              </div>
+            )}
+            {showSettings && (
+              <div className="absolute top-12 right-2 z-20">
+                <LayoutSettings
+                  settings={settings}
+                  onSettingsChange={handleSettingsChange}
+                  onClose={() => setShowSettings(false)}
+                />
+              </div>
+            )}
+          </div>
+        </ResizablePanel>
+        <ResizableHandle />
+        <ResizablePanel defaultSize={100 - settings.editorSize}>
+          <div className="h-full">
+            <AIChat
+              onCodeUpdate={handleCodeUpdate}
               className="h-full"
             />
-          </ResizablePanel>
-          
-          <ResizableHandle />
-          
-          <ResizablePanel defaultSize={35}>
-            <Tabs defaultValue="preview" className="h-full flex flex-col">
-              <div className="flex-none px-4 pt-2">
-                <TabsList>
-                  <TabsTrigger value="preview">Preview</TabsTrigger>
-                  <TabsTrigger value="chat">AI Chat</TabsTrigger>
-                </TabsList>
-              </div>
-              
-              <TabsContent value="preview" className="flex-1 p-4">
-                <CodePreview code={code} className="h-full" />
-              </TabsContent>
-              
-              <TabsContent value="chat" className="flex-1">
-                <AIChat
-                  className="h-full"
-                  onSendMessage={handleAIMessage}
-                  onCodeUpdate={handleCodeUpdate}
-                  currentCode={code}
-                  language={language}
-                />
-              </TabsContent>
-            </Tabs>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </div>
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 }

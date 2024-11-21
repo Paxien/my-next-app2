@@ -10,45 +10,31 @@ interface CodePreviewProps {
 }
 
 export function CodePreview({ code, className }: CodePreviewProps) {
-  const [error, setError] = useState<string | null>(null);
-  const [transformedCode, setTransformedCode] = useState(code);
+  const [mounted, setMounted] = useState(false);
 
-  // Transform the code when it changes
   useEffect(() => {
-    try {
-      // Remove imports as they're not supported in react-live
-      let newCode = code.replace(/import\s+.*?;?\n/g, '');
-      
-      // If the code exports something, wrap it in a render function
-      if (newCode.includes('export')) {
-        newCode = newCode.replace(/export\s+default\s+/, '');
-        newCode = `render(${newCode})`;
-      }
-      
-      setTransformedCode(newCode);
-      setError(null);
-    } catch (err) {
-      setError('Error transforming code');
-      setTransformedCode(code);
-    }
-  }, [code]);
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
-    <div className={cn('flex flex-col h-full', className)}>
-      <LiveProvider code={transformedCode} noInline>
-        <div className="flex-1 p-4 bg-white rounded-md shadow overflow-auto">
-          <LivePreview />
-        </div>
-        
-        {error && (
-          <div className="text-sm text-red-500 p-2 mt-2 bg-red-50 rounded-md">
-            {error}
+    <div className={cn('w-full h-full', className)}>
+      <LiveProvider code={code}>
+        <div className="grid grid-cols-2 gap-4 h-full">
+          <div className="overflow-auto">
+            <LiveEditor className="min-h-[300px] p-4" />
+            <LiveError />
           </div>
-        )}
-        <LiveError 
-          className="text-sm text-red-500 p-2 mt-2 bg-red-50 rounded-md"
-        />
+          <div className="border rounded-md p-4 bg-background">
+            <LivePreview />
+          </div>
+        </div>
       </LiveProvider>
     </div>
   );
 }
+
+export default CodePreview;

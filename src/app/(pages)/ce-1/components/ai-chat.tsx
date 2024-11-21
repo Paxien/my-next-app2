@@ -275,3 +275,5 @@ export function AIChat({ onSendMessage, onCodeUpdate, className }: AIChatProps) 
     </div>
   );
 }
+
+export default AIChat;
