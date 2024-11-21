@@ -79,3 +79,29 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@layer base {
+  [data-panel-group-direction="horizontal"] > [data-panel-handle] {
+    width: 2px;
+    background-color: hsl(var(--border));
+    cursor: ew-resize;
+    transition: background-color 150ms;
+  }
+
+  [data-panel-group-direction="horizontal"] > [data-panel-handle]:hover,
+  [data-panel-group-direction="horizontal"] > [data-panel-handle][data-panel-handle-active] {
+    background-color: hsl(var(--primary));
+  }
+
+  [data-panel-group-direction="vertical"] > [data-panel-handle] {
+    height: 2px;
+    background-color: hsl(var(--border));
+    cursor: ns-resize;
+    transition: background-color 150ms;
+  }
+
+  [data-panel-group-direction="vertical"] > [data-panel-handle]:hover,
+  [data-panel-group-direction="vertical"] > [data-panel-handle][data-panel-handle-active] {
+    background-color: hsl(var(--primary));
+  }
+}

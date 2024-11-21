@@ -35,6 +35,40 @@ interface AIChatProps {
   className?: string;
 }
 
+const MessageContent = React.memo(({ content, onInsertCode }: { 
+  content: string; 
+  onInsertCode: (code: string) => void;
+}) => {
+  const components = {
+    code({ node, inline, className, children, ...props }: any) {
+      const match = /language-(\w+)/.exec(className || '');
+      const code = String(children).replace(/\n$/, '');
+      
+      if (!inline && match) {
+        return (
+          <CodeSnippet
+            code={code}
+            language={match[1]}
+            onInsert={onInsertCode}
+          />
+        );
+      }
+      return <code className={className} {...props}>{children}</code>;
+    }
+  };
+
+  return (
+    <ReactMarkdown
+      components={components}
+      className="prose prose-sm dark:prose-invert max-w-none"
+    >
+      {content}
+    </ReactMarkdown>
+  );
+});
+
+MessageContent.displayName = 'MessageContent';
+
 export function AIChat({ onCodeUpdate, className }: AIChatProps) {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -200,42 +234,6 @@ export function AIChat({ onCodeUpdate, className }: AIChatProps) {
     onCodeUpdate(code);
   };
 
-  const CodeBlock = ({ code, language }: { code: string; language: string }) => {
-    return (
-      <div className="not-prose my-4 first:mt-0 last:mb-0">
-        <CodeSnippet
-          code={code}
-          language={language}
-          onInsert={handleInsertCode}
-        />
-      </div>
-    );
-  };
-
-  // Custom renderer for markdown code blocks
-  const renderers = {
-    code: ({ node, inline, className, children, ...props }: any) => {
-      if (inline) {
-        return (
-          <code className="bg-muted px-1.5 py-0.5 rounded-sm text-sm" {...props}>
-            {children}
-          </code>
-        );
-      }
-
-      const match = /language-(\w+)/.exec(className || '');
-      const language = match ? match[1] : 'typescript';
-      const code = String(children).replace(/\n$/, '');
-
-      // Return the code block outside of any paragraph context
-      return <CodeBlock code={code} language={language} />;
-    },
-    // Remove the paragraph override since we're handling code blocks differently
-    p: ({ children }: { children: React.ReactNode }) => (
-      <p className="mb-2 last:mb-0">{children}</p>
-    )
-  };
-
   return (
     <div className={cn("flex flex-col h-full", className)}>
       {/* Sticky header section */}
@@ -256,83 +254,67 @@ export function AIChat({ onCodeUpdate, className }: AIChatProps) {
         </div>
       </div>
 
-      {/* Scrollable chat content */}
-      <div className="flex-1 min-h-0">
-        <ScrollArea className="h-full">
-          <div className="p-4 space-y-4">
-            {error && (
-              <div className="p-4 mb-4 text-sm text-red-500 bg-red-50 dark:bg-red-900/10 rounded-lg">
-                {error}
-              </div>
-            )}
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={cn(
-                  "flex gap-2 rounded-lg p-4",
-                  message.role === 'user' && "bg-secondary",
-                  message.role === 'assistant' && "bg-muted",
-                  message.role === 'error' && "bg-destructive/10 text-destructive",
-                  message.role === 'system' && "bg-primary/10"
-                )}
-              >
-                {message.role === 'user' && <User className="h-5 w-5 mt-1" />}
-                {message.role === 'assistant' && <Bot className="h-5 w-5 mt-1" />}
-                {message.role === 'error' && <XCircle className="h-5 w-5 mt-1" />}
-                
-                <div className="flex-1">
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown components={renderers}>
-                      {message.content}
-                    </ReactMarkdown>
-                  </div>
-                  {message.model && (
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      Model: {message.model}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>AI is thinking...</span>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea>
-      </div>
-
-      {/* Sticky footer section */}
-      <div className="sticky bottom-0 z-10 bg-background border-t">
-        <div className="p-4">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSend();
-            }}
-            className="flex gap-2"
-          >
-            <Input
-              ref={inputRef}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="Type a message..."
-              disabled={isLoading}
-              className="flex-1"
-            />
-            <Button 
-              type="submit" 
-              size="icon"
-              disabled={isLoading || !inputValue.trim()}
+      {/* Messages section */}
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-4">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={cn(
+                "flex gap-2 rounded-lg p-4",
+                message.role === 'user' && "bg-muted",
+                message.role === 'assistant' && "bg-accent",
+                message.role === 'error' && "bg-destructive/10 text-destructive",
+                message.role === 'system' && "text-muted-foreground italic"
+              )}
             >
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
+              {message.role === 'user' && <User className="h-5 w-5 mt-1" />}
+              {message.role === 'assistant' && <Bot className="h-5 w-5 mt-1" />}
+              {message.role === 'error' && <XCircle className="h-5 w-5 mt-1" />}
+              {message.role === 'system' && <Terminal className="h-5 w-5 mt-1" />}
+              
+              <div className="flex-1 space-y-2">
+                <MessageContent 
+                  content={message.content} 
+                  onInsertCode={handleInsertCode}
+                />
+                {message.model && (
+                  <div className="text-xs text-muted-foreground">
+                    Using model: {message.model}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
         </div>
+      </ScrollArea>
+
+      {/* Input section */}
+      <div className="sticky bottom-0 z-10 bg-background border-t p-4">
+        <div className="flex gap-2">
+          <Input
+            ref={inputRef}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder="Type a message or command..."
+            disabled={isLoading}
+          />
+          <Button
+            onClick={handleSend}
+            disabled={isLoading || !inputValue.trim()}
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+        {error && (
+          <div className="mt-2 text-sm text-destructive">{error}</div>
+        )}
       </div>
     </div>
   );
