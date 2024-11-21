@@ -20,6 +20,7 @@ import {
   formatCommandInstructions 
 } from '../utils/ai-commands';
 import { parseCommand, parseArgs } from '../utils/command-handlers';
+import { CommandBar, type CommandMode } from './command-bar';
 
 interface Message {
   id: string;
@@ -39,157 +40,149 @@ export function AIChat({ onCodeUpdate, className }: AIChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [currentModel, setCurrentModel] = useState<AIModel>(defaultModels[0]);
-  const [availableModels, setAvailableModels] = useState<AIModel[]>(defaultModels);
-  const [error, setError] = useState<string | null>(null);
-  const [commandMode, setCommandMode] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [mode, setMode] = useState<CommandMode>('assistant');
+  const [currentModel, setCurrentModel] = useState<AIModel>(defaultModels[0]);
+  const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Initialize models and welcome message
   useEffect(() => {
-    if (initialized) return;
-    
-    fetchAvailableModels().then(models => {
-      setAvailableModels(models);
-    });
+    if (!initialized) {
+      // Fetch available models
+      fetchAvailableModels().then(models => {
+        setAvailableModels(models);
+        // Set current model to the first non-favorite model
+        const defaultModel = models.find(m => !m.isFavorite) || models[0];
+        setCurrentModel(defaultModel);
+      });
 
-    // Add welcome message with command instructions
-    const welcomeMessage = 
-      "# 👋 Welcome to the AI Code Editor!\n\n" +
-      "I'm here to help you write, modify, and understand code. Here are the available commands:";
-
-    setMessages([{
-      id: generateMessageId(),
-      role: 'system',
-      content: welcomeMessage + "\n\n" + formatCommandInstructions(),
-      timestamp: Date.now()
-    }]);
-
-    setInitialized(true);
-  }, [initialized]);
+      // Add welcome message
+      const welcomeMessage = getModeWelcomeMessage(mode);
+      setMessages([
+        {
+          id: '0',
+          role: 'system',
+          content: welcomeMessage,
+          timestamp: Date.now()
+        }
+      ]);
+      setInitialized(true);
+    }
+  }, [initialized, mode]);
 
   useEffect(() => {
-    // Scroll to bottom when new messages arrive
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const generateMessageId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-  const addMessage = (message: Omit<Message, 'id' | 'timestamp'>) => {
-    setMessages(prev => [...prev, {
-      ...message,
-      id: generateMessageId(),
-      timestamp: Date.now()
-    }]);
+  const getModeWelcomeMessage = (mode: CommandMode): string => {
+    const messages = {
+      assistant: "👋 Hi! I'm your AI assistant. I can help you analyze code, explain concepts, and provide suggestions. How can I help you today?",
+      webapp: "🌐 Web App Mode activated! I'll help you generate components, create routes, and build features. What would you like to create?",
+      database: "🗄️ Database Mode ready! Let's design schemas, models, and APIs. What's your database need?",
+      refactor: "♻️ Refactor Mode enabled! I'll help improve your code quality and structure. What code should we enhance?",
+      docs: "📚 Documentation Mode active! Let's create clear and helpful documentation. What needs documenting?",
+      debug: "🔧 Debug Mode initialized! I'll help you find and fix issues. What's the problem you're facing?"
+    };
+    return messages[mode];
   };
 
-  const handleCommand = async (input: string) => {
-    const { command, args } = parseCommand(input);
-    const handler = COMMAND_HANDLERS[command];
-
-    if (!handler) {
-      addMessage({
-        role: 'error',
-        content: `Unknown command: ${command}. Type /help for available commands.`,
-      });
-      return;
-    }
-
-    try {
-      const context: FileContext = {
-        path: '',
-        content: '',
-        language: 'typescript',
-        cursor: {
-          line: 0,
-          column: 0
-        }
-      };
-
-      const result = await handler.handler(args, context);
-      
-      // Combine message and code into a single message if both exist
-      if (result.code) {
-        addMessage({
-          role: 'system',
-          content: `${result.message}\n\n\`\`\`typescript\n${result.code}\n\`\`\``
-        });
-      } else {
-        addMessage({
-          role: 'system',
-          content: result.message
-        });
+  const handleModeChange = (newMode: CommandMode) => {
+    setMode(newMode);
+    setMessages(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        role: 'system',
+        content: `Switching to ${newMode} mode...\n\n${getModeWelcomeMessage(newMode)}`
       }
+    ]);
+  };
 
-      // Update editor content if files are provided
-      if (result.files?.[0]?.content) {
-        onCodeUpdate(result.files[0].content);
+  const handleModelChange = (model: AIModel) => {
+    setCurrentModel(model);
+    // Add model change notification
+    setMessages(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        role: 'system',
+        content: `Switched to ${model.name}. ${model.description}`,
+        timestamp: Date.now(),
+        model: model.id
       }
+    ]);
+  };
 
-    } catch (error) {
-      addMessage({
-        role: 'error',
-        content: error instanceof Error ? error.message : 'Command execution failed'
-      });
-    }
+  const handleCommandClick = (command: string) => {
+    setInputValue(command);
   };
 
   const handleSend = async () => {
     if (!inputValue.trim() || isLoading) return;
 
-    const messageContent = inputValue.trim();
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: inputValue,
+      timestamp: Date.now()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
     setError(null);
 
-    // Check if it's a command
-    if (messageContent.startsWith('/')) {
-      await handleCommand(messageContent);
-      setIsLoading(false);
-      return;
-    }
-
-    const messageWithContext: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: messageContent,
-      timestamp: Date.now()
-    };
-
-    // Add user message immediately
-    addMessage(messageWithContext);
-
     try {
-      // Get AI response
-      const aiResponse = await getAIResponse(
-        messages.concat(messageWithContext),
+      // Prepare conversation history
+      const conversationHistory = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      // Add user's message to history
+      conversationHistory.push({
+        role: 'user',
+        content: inputValue
+      });
+
+      // Get AI response with current model and mode context
+      const response = await getAIResponse(
+        conversationHistory,
         currentModel.id
       );
-
-      // Process response
-      const { code, explanation } = extractCodeFromResponse(aiResponse.content);
       
-      // Update code if provided
-      if (code) {
-        onCodeUpdate(code);
-      }
-
-      // Add AI response
-      addMessage({
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: aiResponse.content,
-        model: aiResponse.model,
+        content: response.content,
+        model: response.model,
         timestamp: Date.now()
-      });
+      };
 
+      setMessages(prev => [...prev, aiMessage]);
+
+      // Handle code updates
+      if (mode === 'webapp') {
+        const { code } = extractCodeFromResponse(response.content);
+        if (code) {
+          onCodeUpdate(code);
+        }
+      }
     } catch (error) {
       console.error('Error in AI chat:', error);
-      addMessage({
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
         role: 'error',
-        content: error instanceof Error ? error.message : 'An unexpected error occurred',
+        content: error instanceof Error 
+          ? `Error: ${error.message}` 
+          : 'An unexpected error occurred while processing your request.',
         timestamp: Date.now()
-      });
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      setError(errorMessage.content);
     } finally {
       setIsLoading(false);
       inputRef.current?.focus();
@@ -245,86 +238,101 @@ export function AIChat({ onCodeUpdate, className }: AIChatProps) {
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
-      <div className="flex items-center gap-2 p-2 border-b">
-        <ModelSelector
-          models={availableModels}
-          currentModel={currentModel}
-          onModelChange={setCurrentModel}
-        />
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setCommandMode(!commandMode)}
-          className={cn(
-            "h-8 w-8",
-            commandMode && "bg-secondary"
-          )}
-        >
-          <Terminal className="h-4 w-4" />
-        </Button>
+      {/* Sticky header section */}
+      <div className="sticky top-0 z-10 bg-background border-b">
+        <div className="flex items-center gap-2 p-2">
+          <ModelSelector
+            models={availableModels}
+            currentModel={currentModel}
+            onModelChange={handleModelChange}
+          />
+        </div>
+        <div className="p-2 border-t">
+          <CommandBar
+            mode={mode}
+            onModeChange={handleModeChange}
+            onCommandClick={handleCommandClick}
+          />
+        </div>
       </div>
 
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "flex gap-2 rounded-lg p-4",
-                message.role === 'user' && "bg-secondary",
-                message.role === 'assistant' && "bg-muted",
-                message.role === 'error' && "bg-destructive/10 text-destructive",
-                message.role === 'system' && "bg-primary/10"
-              )}
-            >
-              {message.role === 'user' && <User className="h-5 w-5 mt-1" />}
-              {message.role === 'assistant' && <Bot className="h-5 w-5 mt-1" />}
-              {message.role === 'error' && <XCircle className="h-5 w-5 mt-1" />}
-              
-              <div className="flex-1 prose prose-sm dark:prose-invert max-w-none">
-                <ReactMarkdown
-                  components={renderers}
-                >
-                  {message.content}
-                </ReactMarkdown>
+      {/* Scrollable chat content */}
+      <div className="flex-1 min-h-0">
+        <ScrollArea className="h-full">
+          <div className="p-4 space-y-4">
+            {error && (
+              <div className="p-4 mb-4 text-sm text-red-500 bg-red-50 dark:bg-red-900/10 rounded-lg">
+                {error}
               </div>
-            </div>
-          ))}
-          {isLoading && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>AI is thinking...</span>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-      </ScrollArea>
-
-      <div className="p-4 border-t">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSend();
-          }}
-          className="flex gap-2"
-        >
-          <Input
-            ref={inputRef}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyPress}
-            placeholder={commandMode ? "Type a command (e.g., /help)" : "Type a message..."}
-            className="flex-1"
-            disabled={isLoading}
-          />
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
             )}
-          </Button>
-        </form>
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={cn(
+                  "flex gap-2 rounded-lg p-4",
+                  message.role === 'user' && "bg-secondary",
+                  message.role === 'assistant' && "bg-muted",
+                  message.role === 'error' && "bg-destructive/10 text-destructive",
+                  message.role === 'system' && "bg-primary/10"
+                )}
+              >
+                {message.role === 'user' && <User className="h-5 w-5 mt-1" />}
+                {message.role === 'assistant' && <Bot className="h-5 w-5 mt-1" />}
+                {message.role === 'error' && <XCircle className="h-5 w-5 mt-1" />}
+                
+                <div className="flex-1">
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <ReactMarkdown components={renderers}>
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
+                  {message.model && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Model: {message.model}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>AI is thinking...</span>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
+      </div>
+
+      {/* Sticky footer section */}
+      <div className="sticky bottom-0 z-10 bg-background border-t">
+        <div className="p-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSend();
+            }}
+            className="flex gap-2"
+          >
+            <Input
+              ref={inputRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder="Type a message..."
+              disabled={isLoading}
+              className="flex-1"
+            />
+            <Button 
+              type="submit" 
+              size="icon"
+              disabled={isLoading || !inputValue.trim()}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
+        </div>
       </div>
     </div>
   );

@@ -95,42 +95,59 @@ export const defaultModels: AIModel[] = [
   }
 ];
 
-const FAVORITES_KEY = 'favorite-ai-models';
+export async function fetchAvailableModels(): Promise<AIModel[]> {
+  try {
+    // Load favorite models from localStorage
+    const favoriteIds = loadFavoriteModels();
+    
+    // Add isFavorite property to default models
+    const modelsWithFavorites = defaultModels.map(model => ({
+      ...model,
+      isFavorite: favoriteIds.includes(model.id)
+    }));
+
+    // TODO: In the future, fetch from API
+    // const response = await fetch('/api/models');
+    // const models = await response.json();
+    
+    return modelsWithFavorites;
+  } catch (error) {
+    console.error('Error fetching models:', error);
+    return defaultModels;
+  }
+}
+
+export function toggleFavoriteModel(model: AIModel, models: AIModel[]): AIModel[] {
+  const updatedModels = models.map(m => {
+    if (m.id === model.id) {
+      return { ...m, isFavorite: !m.isFavorite };
+    }
+    return m;
+  });
+
+  // Update localStorage
+  const favoriteIds = updatedModels
+    .filter(m => m.isFavorite)
+    .map(m => m.id);
+  saveFavoriteModels(favoriteIds);
+
+  return updatedModels;
+}
 
 export function saveFavoriteModels(favoriteIds: string[]): void {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favoriteIds));
+  try {
+    localStorage.setItem('favoriteModels', JSON.stringify(favoriteIds));
+  } catch (error) {
+    console.error('Error saving favorite models:', error);
   }
 }
 
 export function loadFavoriteModels(): string[] {
-  if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem(FAVORITES_KEY);
-    return saved ? JSON.parse(saved) : [];
+  try {
+    const stored = localStorage.getItem('favoriteModels');
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Error loading favorite models:', error);
+    return [];
   }
-  return [];
-}
-
-export function toggleFavoriteModel(model: AIModel, models: AIModel[]): AIModel[] {
-  const favoriteIds = loadFavoriteModels();
-  const isCurrentlyFavorite = favoriteIds.includes(model.id);
-  
-  const updatedFavoriteIds = isCurrentlyFavorite
-    ? favoriteIds.filter(id => id !== model.id)
-    : [...favoriteIds, model.id];
-  
-  saveFavoriteModels(updatedFavoriteIds);
-  
-  return models.map(m => ({
-    ...m,
-    isFavorite: updatedFavoriteIds.includes(m.id)
-  }));
-}
-
-export async function fetchAvailableModels(): Promise<AIModel[]> {
-  const favoriteIds = loadFavoriteModels();
-  return defaultModels.map(model => ({
-    ...model,
-    isFavorite: favoriteIds.includes(model.id)
-  }));
 }

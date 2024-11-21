@@ -89,7 +89,7 @@ export function LayoutSettings({ settings, onSettingsChange, onClose }: LayoutSe
             }
           >
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="Select theme" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="light">Light</SelectItem>
