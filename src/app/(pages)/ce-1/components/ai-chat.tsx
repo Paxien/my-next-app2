@@ -1,15 +1,16 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Bot, User, XCircle } from 'lucide-react';
+import { Send, Loader2, Bot, User, XCircle, ChevronsUpDown, Eraser } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getAIResponse, extractCodeFromResponse, type AIResponse } from '../utils/ai';
-import { ModelSelector } from './model-selector';
 import { defaultModels, type AIModel, fetchAvailableModels } from '../utils/models';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
+import { useRouter } from 'next/navigation';
+import { ModelSelector } from './model-selector';
 
 interface Message {
   id: string;
@@ -35,8 +36,9 @@ interface AIChatProps {
 }
 
 export function AIChat({ onSendMessage, onCodeUpdate, className }: AIChatProps) {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [currentMessage, setCurrentMessage] = useState('');
+  const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentModel, setCurrentModel] = useState<AIModel>(defaultModels[0]);
   const [availableModels, setAvailableModels] = useState<AIModel[]>(defaultModels);
@@ -47,6 +49,9 @@ export function AIChat({ onSendMessage, onCodeUpdate, className }: AIChatProps) 
   useEffect(() => {
     fetchAvailableModels().then(models => {
       setAvailableModels(models);
+      // Set the default model to Llama 3 8B
+      const defaultModel = models.find(m => m.id === 'meta-llama/llama-3-8b-instruct:free') || models[0];
+      setCurrentModel(defaultModel);
     });
   }, []);
 
@@ -66,10 +71,10 @@ export function AIChat({ onSendMessage, onCodeUpdate, className }: AIChatProps) 
   };
 
   const handleSend = async () => {
-    if (!currentMessage.trim() || isLoading) return;
+    if (!inputValue.trim() || isLoading) return;
 
-    const messageText = currentMessage.trim();
-    setCurrentMessage('');
+    const messageText = inputValue.trim();
+    setInputValue('');
     setError(null);
     setIsLoading(true);
 
@@ -178,16 +183,19 @@ export function AIChat({ onSendMessage, onCodeUpdate, className }: AIChatProps) 
   return (
     <div className={cn('flex flex-col h-full bg-background', className)}>
       <div className="sticky top-0 z-10 bg-background border-b">
-        <div className="flex items-center justify-between p-4">
+        <div className="flex items-center justify-between px-4 py-2 border-b">
           <div className="flex items-center gap-2">
-            <Bot className="h-5 w-5" />
-            <h2 className="text-lg font-semibold">AI Assistant</h2>
+            <ModelSelector
+              selectedModel={currentModel}
+              models={availableModels}
+              onModelSelect={setCurrentModel}
+            />
           </div>
-          <ModelSelector
-            selectedModel={currentModel}
-            models={availableModels}
-            onModelSelect={setCurrentModel}
-          />
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => setMessages([])}>
+              <Eraser className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -248,14 +256,14 @@ export function AIChat({ onSendMessage, onCodeUpdate, className }: AIChatProps) 
         >
           <Input
             ref={inputRef}
-            value={currentMessage}
-            onChange={(e) => setCurrentMessage(e.target.value)}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyPress}
             placeholder="Ask about your code or request changes..."
             disabled={isLoading}
             className="flex-1"
           />
-          <Button type="submit" disabled={isLoading || !currentMessage.trim()}>
+          <Button type="submit" disabled={isLoading || !inputValue.trim()}>
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (

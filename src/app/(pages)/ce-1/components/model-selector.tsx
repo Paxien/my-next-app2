@@ -1,168 +1,146 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { Check, ChevronsUpDown, Search } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Star, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { type AIModel } from '../utils/models';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { type AIModel, toggleFavoriteModel, defaultModels } from '../utils/models';
 
 interface ModelSelectorProps {
+  models: AIModel[];
+  selectedModel: AIModel | null;
   onModelSelect: (model: AIModel) => void;
-  selectedModel?: AIModel | null;
-  models?: AIModel[];
 }
 
 export function ModelSelector({
-  models = [],
-  selectedModel = null,
+  models,
+  selectedModel,
   onModelSelect,
 }: ModelSelectorProps) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const [activeIndex, setActiveIndex] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [localModels, setLocalModels] = useState<AIModel[]>(models || defaultModels);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const filteredModels = useMemo(() => {
-    if (!search.trim()) return models;
-    const searchLower = search.toLowerCase();
-    return models.filter(model => 
-      model.name.toLowerCase().includes(searchLower) ||
-      model.description.toLowerCase().includes(searchLower) ||
-      model.id.toLowerCase().includes(searchLower)
-    );
-  }, [models, search]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!open) return;
-
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        setActiveIndex(prev => 
-          prev < filteredModels.length - 1 ? prev + 1 : prev
-        );
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        setActiveIndex(prev => prev > 0 ? prev - 1 : prev);
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (filteredModels[activeIndex]) {
-          onModelSelect(filteredModels[activeIndex]);
-          setOpen(false);
-        }
-        break;
-      case "Escape":
-        e.preventDefault();
-        setOpen(false);
-        break;
+  useEffect(() => {
+    if (models) {
+      setLocalModels(models);
     }
+  }, [models]);
+
+  const filteredModels = localModels.filter((model) =>
+    model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    model.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const favoriteModels = filteredModels.filter((model) => model.isFavorite);
+  const otherModels = filteredModels.filter((model) => !model.isFavorite);
+
+  const handleModelSelect = (model: AIModel) => {
+    onModelSelect(model);
+    setOpen(false);
   };
 
-  useEffect(() => {
-    if (open && listRef.current) {
-      const activeElement = listRef.current.children[activeIndex] as HTMLElement;
-      if (activeElement) {
-        activeElement.scrollIntoView({ block: "nearest" });
-      }
-    }
-  }, [activeIndex, open]);
+  const handleFavoriteToggle = (model: AIModel) => {
+    const updatedModels = toggleFavoriteModel(model, localModels);
+    setLocalModels(updatedModels);
+  };
 
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [search]);
+  const ModelCard = ({ model }: { model: AIModel }) => (
+    <Card className="relative hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleModelSelect(model)}>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-2 right-2 h-8 w-8"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleFavoriteToggle(model);
+        }}
+      >
+        <Star className={cn(
+          "h-5 w-5",
+          model.isFavorite ? "fill-yellow-400 text-yellow-400" : ""
+        )} />
+      </Button>
+
+      <CardHeader>
+        <CardTitle>{model.name}</CardTitle>
+        <CardDescription>{model.description}</CardDescription>
+      </CardHeader>
+
+      <CardContent>
+        <div className="flex flex-wrap gap-2">
+          {model.features?.map((feature, index) => (
+            <span
+              key={index}
+              className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-sm"
+            >
+              {feature}
+            </span>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between"
-        >
-          {selectedModel ? selectedModel.name : "Select a model..."}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="w-[200px] justify-start">
+          {selectedModel?.name || "Select a model..."}
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0">
-        <Command>
-          <div className="flex items-center border-b px-3">
-            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-            <input
-              ref={inputRef}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Search models..."
-              className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
-          <div 
-            ref={listRef} 
-            className="max-h-[300px] overflow-y-auto"
-          >
-            {filteredModels.map((model, index) => (
-              <div
-                key={model.id}
-                onMouseEnter={() => setActiveIndex(index)}
-                className={cn(
-                  "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none",
-                  activeIndex === index && "bg-accent text-accent-foreground",
-                  "aria-selected:bg-accent aria-selected:text-accent-foreground"
-                )}
-                onClick={() => {
-                  onModelSelect(model);
-                  setOpen(false);
-                }}
-              >
-                <div className="flex flex-col flex-grow">
-                  <span className="font-medium">{model.name}</span>
-                  <span className="text-xs text-muted-foreground">{model.description}</span>
-                  <div className="flex items-center gap-2 mt-1">
-                    {model.contextWindow && (
-                      <span className="text-xs bg-secondary px-1.5 py-0.5 rounded-sm">
-                        {model.contextWindow.toLocaleString()} tokens
-                      </span>
-                    )}
-                    {model.pricingType === "free" ? (
-                      <span className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 px-1.5 py-0.5 rounded-sm">
-                        Free
-                      </span>
-                    ) : (
-                      <span className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 px-1.5 py-0.5 rounded-sm">
-                        Paid
-                      </span>
-                    )}
+      </DialogTrigger>
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Select AI Model</DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <Input
+            type="search"
+            placeholder="Search models..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : (
+            <>
+              {favoriteModels.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold">Favorites</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {favoriteModels.map((model) => (
+                      <ModelCard key={model.id} model={model} />
+                    ))}
                   </div>
                 </div>
-                {selectedModel?.id === model.id && (
-                  <Check className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                )}
+              )}
+
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold">All Models</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {otherModels.map((model) => (
+                    <ModelCard key={model.id} model={model} />
+                  ))}
+                </div>
               </div>
-            ))}
-            {filteredModels.length === 0 && (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                No models found.
-              </div>
-            )}
-          </div>
-        </Command>
-      </PopoverContent>
-    </Popover>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -14,36 +14,84 @@ export interface AIModel {
 
 export const defaultModels: AIModel[] = [
   {
-    id: 'meta-llama/llama-3-8b-instruct:free',
-    name: 'Llama 3 8B Instruct',
-    description: 'Latest Llama model optimized for instruction following and code generation',
+    id: 'google/gemini-1114-experimental',
+    name: 'Gemini Experimental 1114',
+    description: 'Gemini 11-14 (2024) experimental model features "quality" improvements.',
     isFree: true,
-    maxTokens: 4096,
-    contextWindow: 4096
+    maxTokens: 310000,
+    contextWindow: 1000000
   },
   {
-    id: 'mistralai/mistral-7b-instruct',
-    name: 'Mistral 7B Instruct',
-    description: 'Fast and efficient model for code analysis and generation',
+    id: 'liquid/lfm-40b-moe',
+    name: 'Liquid: LFM 40B MoE',
+    description: 'Liquid\'s 40.3B Mixture of Experts (MoE) model. Specialized in programming and technology.',
     isFree: true,
-    maxTokens: 4096,
-    contextWindow: 4096
-  },
-  {
-    id: 'meta-llama/codellama-34b-instruct',
-    name: 'CodeLlama 34B',
-    description: 'Meta\'s specialized code model with strong programming abilities',
-    isFree: true,
-    maxTokens: 8192,
+    maxTokens: 55800000,
     contextWindow: 8192
   },
   {
-    id: 'meta-llama/llama-2-70b-chat',
-    name: 'Llama 2 70B Chat',
-    description: 'Meta\'s largest open-source chat model with exceptional coding capabilities',
+    id: 'meta-llama/llama-3.2-3b-instruct',
+    name: 'Llama 3.2 3B Instruct',
+    description: '3B parameter multilingual model optimized for dialogue, reasoning, and summarization. Supports 8 languages.',
     isFree: true,
-    maxTokens: 4096,
+    maxTokens: 37200000,
     contextWindow: 4096
+  },
+  {
+    id: 'meta-llama/llama-3.2-1b-instruct',
+    name: 'Llama 3.2 1B Instruct',
+    description: '1B parameter efficient model for summarization and multilingual text analysis.',
+    isFree: true,
+    maxTokens: 113000,
+    contextWindow: 4096
+  },
+  {
+    id: 'meta-llama/llama-3.2-90b-vision',
+    name: 'Llama 3.2 90B Vision',
+    description: '90B parameter multimodal model for visual reasoning and image-text tasks.',
+    isFree: true,
+    maxTokens: 39000,
+    contextWindow: 4096
+  },
+  {
+    id: 'meta-llama/llama-3.2-11b-vision',
+    name: 'Llama 3.2 11B Vision',
+    description: '11B parameter multimodal model for image captioning and visual question answering.',
+    isFree: true,
+    maxTokens: 53700,
+    contextWindow: 8192
+  },
+  {
+    id: 'google/gemini-flash-8b-1.5-experimental',
+    name: 'Gemini Flash 8B 1.5',
+    description: 'Experimental 8B parameter version of Gemini 1.5 Flash model.',
+    isFree: true,
+    maxTokens: 347000,
+    contextWindow: 1000000
+  },
+  {
+    id: 'google/gemini-flash-1.5-experimental',
+    name: 'Gemini Flash 1.5',
+    description: 'Experimental version of Gemini 1.5 Flash, specialized in technology and web.',
+    isFree: true,
+    maxTokens: 955000,
+    contextWindow: 1000000
+  },
+  {
+    id: 'nous/hermes-3-405b-instruct',
+    name: 'Hermes 3 405B Instruct',
+    description: 'Frontier-level model with advanced agentic capabilities, roleplaying, and code generation.',
+    isFree: true,
+    maxTokens: 1200000,
+    contextWindow: 8192
+  },
+  {
+    id: 'google/gemini-pro-1.5-experimental',
+    name: 'Gemini Pro 1.5',
+    description: 'Bleeding-edge version of Gemini 1.5 Pro with multimodal capabilities.',
+    isFree: true,
+    maxTokens: 837000,
+    contextWindow: 1000000
   }
 ];
 
