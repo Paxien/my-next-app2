@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    const { messages } = await req.json();
+    const { messages, model } = await req.json();
     const apiKey = process.env.OPENROUTER_API_KEY;
 
     if (!apiKey) {
@@ -18,23 +18,28 @@ export async function POST(req: Request) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
         'HTTP-Referer': 'http://localhost:3000',
-        'X-Title': 'Code Editor AI Assistant'
       },
       body: JSON.stringify({
-        model: 'mistralai/mistral-7b-instruct',
-        messages: messages,
+        model,
+        messages,
+        temperature: 0.7,
+        max_tokens: 1500,
       }),
     });
 
     if (!response.ok) {
+      const error = await response.json();
       return NextResponse.json(
-        { error: `API request failed: ${response.statusText}` },
+        { error: error.error || 'Failed to get AI response' },
         { status: response.status }
       );
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json({
+      content: data.choices[0].message.content,
+      model: data.model
+    });
   } catch (error) {
     console.error('AI API Error:', error);
     return NextResponse.json(

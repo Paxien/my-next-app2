@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { forwardRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { cn } from '@/lib/utils';
 
@@ -11,12 +11,12 @@ interface CodeEditorProps {
   className?: string;
 }
 
-export function CodeEditor({
+export const CodeEditor = forwardRef<any, CodeEditorProps>(({
   initialValue = '',
   language = 'typescript',
   onChange,
   className
-}: CodeEditorProps) {
+}, ref) => {
   const [value, setValue] = useState(initialValue);
 
   const handleChange = (newValue: string | undefined) => {
@@ -40,7 +40,12 @@ export function CodeEditor({
           scrollBeyondLastLine: false,
           automaticLayout: true
         }}
+        onMount={(editor) => {
+          if (ref && typeof ref === 'object') {
+            ref.current = editor;
+          }
+        }}
       />
     </div>
   );
-}
+});
