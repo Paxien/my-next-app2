@@ -64,6 +64,11 @@
       "name": "Canvas-4",
       "href": "/canvas-4",
       "showInNav": true
+    },
+    {
+      "name": "Ce-1",
+      "href": "/ce-1",
+      "showInNav": true
     }
   ]
 }
