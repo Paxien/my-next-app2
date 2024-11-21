@@ -35,14 +35,17 @@ export default function CE1Page() {
 
   const handleAIMessage = async (message: string) => {
     try {
-      // Here you would typically make an API call to your AI service
-      // For now, we'll just return the current state
+      // Get the current editor state
+      const editorValue = editorRef.current?.getValue() || code;
+      
+      // Return the context for AI processing
       return {
         success: true,
         data: {
-          currentCode: code,
+          currentCode: editorValue,
           language,
           message,
+          cursor: editorRef.current?.getPosition()
         }
       };
     } catch (error) {
@@ -55,7 +58,12 @@ export default function CE1Page() {
   };
 
   const handleCodeUpdate = (newCode: string) => {
-    setCode(newCode);
+    if (editorRef.current) {
+      // Update the editor content
+      editorRef.current.setValue(newCode);
+      // Trigger the onChange event
+      setCode(newCode);
+    }
   };
 
   return (

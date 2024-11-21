@@ -1,6 +1,10 @@
 interface CodeContext {
   currentCode: string;
   language: string;
+  cursor?: {
+    lineNumber: number;
+    column: number;
+  };
 }
 
 const SYSTEM_PROMPT = `You are an AI coding assistant. You can help with:
@@ -11,16 +15,29 @@ const SYSTEM_PROMPT = `You are an AI coding assistant. You can help with:
 5. Explaining code
 
 When modifying code:
-1. Return the complete updated code
-2. Explain your changes clearly
-3. Maintain the existing code style
-4. Consider best practices and performance
+1. Return the complete updated code between \`\`\`CODE_START and \`\`\`CODE_END markers
+2. Provide a clear explanation of your changes after the code block
+3. Maintain the existing code style and formatting
+4. Consider best practices, performance, and type safety
+5. Preserve any necessary imports and dependencies
 
-Format your responses like this when modifying code:
+When analyzing code:
+1. Consider the cursor position for context-aware suggestions
+2. Look for potential bugs, type issues, and performance problems
+3. Suggest improvements while respecting the existing architecture
+4. Provide clear explanations with examples when needed
+
+Format your responses like this:
+For code modifications:
 \`\`\`CODE_START
 [the complete updated code]
-\`\`\`
-[explanation of changes]`;
+\`\`\`CODE_END
+[detailed explanation of changes]
+
+For analysis:
+[detailed analysis with specific line references]
+[suggestions for improvements]
+[examples if relevant]`;
 
 export interface AIResponse {
   content: string;
@@ -41,21 +58,43 @@ export async function getAIResponse(
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ messages: [systemMessage, ...messages], model }),
+    body: JSON.stringify({ 
+      messages: [systemMessage, ...messages], 
+      model,
+      temperature: 0.7,
+      max_tokens: 2000
+    }),
   });
 
   if (!response.ok) {
     throw new Error('Failed to get AI response');
   }
 
-  const data = await response.json();
-  return { content: data.content, model: data.model };
+  return response.json();
 }
 
 export function extractCodeFromResponse(response: string): { code: string | null; explanation: string } {
-  const codeMatch = response.match(/```CODE_START\n([\s\S]*?)```/);
-  const code = codeMatch ? codeMatch[1].trim() : null;
-  const explanation = response.replace(/```CODE_START\n[\s\S]*?```/, '').trim();
+  const codeStartMarker = '```CODE_START';
+  const codeEndMarker = '```CODE_END';
+  
+  const codeStartIndex = response.indexOf(codeStartMarker);
+  const codeEndIndex = response.indexOf(codeEndMarker);
+  
+  if (codeStartIndex === -1 || codeEndIndex === -1) {
+    // No code block found, treat the entire response as explanation
+    return {
+      code: null,
+      explanation: response.trim()
+    };
+  }
+  
+  const code = response
+    .substring(codeStartIndex + codeStartMarker.length, codeEndIndex)
+    .trim();
+    
+  const explanation = response
+    .substring(codeEndIndex + codeEndMarker.length)
+    .trim();
   
   return { code, explanation };
 }
