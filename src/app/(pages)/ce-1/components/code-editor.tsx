@@ -11,7 +11,7 @@ interface CodeEditorProps {
   className?: string;
 }
 
-export const CodeEditor = forwardRef<any, CodeEditorProps>(({
+export const CodeEditor = forwardRef<unknown, CodeEditorProps>(({
   initialValue = '',
   language = 'typescript',
   onChange,
@@ -49,3 +49,5 @@ export const CodeEditor = forwardRef<any, CodeEditorProps>(({
     </div>
   );
 });
+
+CodeEditor.displayName = 'CodeEditor';

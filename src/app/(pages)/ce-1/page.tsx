@@ -34,11 +34,24 @@ export default function CE1Page() {
   };
 
   const handleAIMessage = async (message: string) => {
-    return {
-      currentCode: code,
-      language,
-      editorInstance: editorRef.current
-    };
+    try {
+      // Here you would typically make an API call to your AI service
+      // For now, we'll just return the current state
+      return {
+        success: true,
+        data: {
+          currentCode: code,
+          language,
+          message,
+        }
+      };
+    } catch (error) {
+      console.error('Error processing AI message:', error);
+      return {
+        success: false,
+        error: 'Failed to process message'
+      };
+    }
   };
 
   const handleCodeUpdate = (newCode: string) => {
