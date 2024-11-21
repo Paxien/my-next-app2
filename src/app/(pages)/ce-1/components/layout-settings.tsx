@@ -16,6 +16,7 @@ import { Settings2 } from "lucide-react";
 
 export interface LayoutSettings {
   editorSize: number;
+  fileViewerSize: number;
   theme: 'light' | 'dark' | 'system';
   fontSize: number;
   wordWrap: boolean;
@@ -66,10 +67,24 @@ export function LayoutSettings({ settings, onSettingsChange, onClose }: LayoutSe
         </div>
 
         <div className="space-y-2">
+          <Label>File Viewer Size (%)</Label>
+          <Slider
+            value={[settings.fileViewerSize]}
+            onValueChange={([value]) => handleSettingChange('fileViewerSize', value)}
+            min={20}
+            max={50}
+            step={5}
+          />
+          <div className="text-xs text-muted-foreground text-right">
+            {settings.fileViewerSize}%
+          </div>
+        </div>
+
+        <div className="space-y-2">
           <Label>Theme</Label>
           <Select
             value={settings.theme}
-            onValueChange={(value) => 
+            onValueChange={(value) =>
               handleSettingChange('theme', value as 'light' | 'dark' | 'system')
             }
           >

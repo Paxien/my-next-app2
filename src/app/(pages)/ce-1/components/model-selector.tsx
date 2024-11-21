@@ -17,14 +17,14 @@ import { type AIModel, toggleFavoriteModel, defaultModels } from '../utils/model
 
 interface ModelSelectorProps {
   models: AIModel[];
-  selectedModel: AIModel | null;
-  onModelSelect: (model: AIModel) => void;
+  currentModel: AIModel;
+  onModelChange: (model: AIModel) => void;
 }
 
 export function ModelSelector({
   models,
-  selectedModel,
-  onModelSelect,
+  currentModel,
+  onModelChange,
 }: ModelSelectorProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,7 +46,7 @@ export function ModelSelector({
   const otherModels = filteredModels.filter((model) => !model.isFavorite);
 
   const handleModelSelect = (model: AIModel) => {
-    onModelSelect(model);
+    onModelChange(model);
     setOpen(false);
   };
 
@@ -96,48 +96,45 @@ export function ModelSelector({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="w-[200px] justify-start">
-          {selectedModel?.name || "Select a model..."}
+          {currentModel?.name || "Select a model..."}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Select AI Model</DialogTitle>
         </DialogHeader>
-        
         <div className="space-y-4">
           <Input
-            type="search"
             placeholder="Search models..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full"
           />
-
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex justify-center p-8">
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
           ) : (
-            <>
+            <div className="grid gap-4">
               {favoriteModels.length > 0 && (
-                <div className="space-y-4">
-                  <h2 className="text-lg font-semibold">Favorites</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <h3 className="font-semibold">Favorite Models</h3>
+                  <div className="grid gap-2">
                     {favoriteModels.map((model) => (
                       <ModelCard key={model.id} model={model} />
                     ))}
                   </div>
                 </div>
               )}
-
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold">All Models</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <h3 className="font-semibold">All Models</h3>
+                <div className="grid gap-2">
                   {otherModels.map((model) => (
                     <ModelCard key={model.id} model={model} />
                   ))}
                 </div>
               </div>
-            </>
+            </div>
           )}
         </div>
       </DialogContent>

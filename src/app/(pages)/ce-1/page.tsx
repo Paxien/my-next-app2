@@ -3,17 +3,14 @@
 import { useState, useEffect } from 'react';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { Button } from "@/components/ui/button";
-import { Eye, Settings2 } from "lucide-react";
+import { Eye, Settings2, ChevronDown, ChevronUp } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { LayoutSettings } from './components/layout-settings';
 import type { LayoutSettings as LayoutSettingsType } from './components/layout-settings';
+import { FileViewer } from './components/file-viewer';
+import { AIChat } from './components/ai-chat';
 
 // Dynamic imports to prevent SSR
-const AIChat = dynamic(() => 
-  import('./components/ai-chat').then((mod) => mod.AIChat), 
-  { ssr: false }
-);
-
 const CodeEditor = dynamic(() => 
   import('./components/code-editor').then((mod) => mod.CodeEditor), 
   { ssr: false }
@@ -30,8 +27,13 @@ export default function CodeEditorPage() {
   const [language, setLanguage] = useState('typescript');
   const [showPreview, setShowPreview] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [isFileViewerCollapsed, setIsFileViewerCollapsed] = useState(false);
+
+  // Add fileViewerSize to settings
   const [settings, setSettings] = useState<LayoutSettingsType>({
-    editorSize: 50,
+    editorSize: 70,
+    fileViewerSize: 30,
     theme: 'system',
     fontSize: 14,
     wordWrap: true,
@@ -55,6 +57,12 @@ export default function CodeEditorPage() {
     setSettings(newSettings);
   };
 
+  const handleFileSelect = (path: string) => {
+    setSelectedFile(path);
+    // In a real implementation, this would load the file contents
+    setCode(`// Contents of ${path}`);
+  };
+
   if (!mounted) {
     return null;
   }
@@ -64,38 +72,75 @@ export default function CodeEditorPage() {
       <ResizablePanelGroup direction="horizontal" className="h-full">
         <ResizablePanel defaultSize={settings.editorSize}>
           <div className="h-full relative">
-            <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
+            <div className="absolute top-2 right-2 z-10 flex gap-2">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => setShowPreview(!showPreview)}
+                className="h-8"
               >
                 <Eye className="h-4 w-4 mr-1" />
-                {showPreview ? 'Hide Preview' : 'Show Preview'}
+                Preview
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => setShowSettings(!showSettings)}
+                className="h-8"
               >
                 <Settings2 className="h-4 w-4 mr-1" />
                 Settings
               </Button>
             </div>
-            <div className="h-full">
-              <CodeEditor
-                initialValue={code}
-                language={language}
-                onChange={handleCodeChange}
-                className="h-full"
-                options={{
-                  fontSize: settings.fontSize,
-                  wordWrap: settings.wordWrap ? 'on' : 'off',
-                  minimap: { enabled: settings.minimap },
-                  lineNumbers: settings.lineNumbers ? 'on' : 'off',
-                }}
-              />
-            </div>
+
+            <ResizablePanelGroup direction="vertical" className="h-full">
+              <ResizablePanel defaultSize={100 - (isFileViewerCollapsed ? 0 : settings.fileViewerSize)}>
+                <div className="h-full">
+                  <CodeEditor
+                    initialValue={code}
+                    language={language}
+                    onChange={handleCodeChange}
+                    className="h-full"
+                    options={{
+                      fontSize: settings.fontSize,
+                      wordWrap: settings.wordWrap ? 'on' : 'off',
+                      minimap: { enabled: settings.minimap },
+                      lineNumbers: settings.lineNumbers ? 'on' : 'off',
+                    }}
+                  />
+                </div>
+              </ResizablePanel>
+
+              {!isFileViewerCollapsed && (
+                <>
+                  <ResizableHandle />
+                  <ResizablePanel defaultSize={settings.fileViewerSize}>
+                    <FileViewer 
+                      onFileSelect={handleFileSelect}
+                      className="h-full bg-background"
+                    />
+                  </ResizablePanel>
+                </>
+              )}
+
+              <div 
+                className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10"
+                onClick={() => setIsFileViewerCollapsed(!isFileViewerCollapsed)}
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 bg-muted/50 hover:bg-muted"
+                >
+                  {isFileViewerCollapsed ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </ResizablePanelGroup>
+
             {showPreview && (
               <div className="absolute inset-0 bg-background/80 backdrop-blur-sm">
                 <CodePreview code={code} className="h-full" />
@@ -114,12 +159,12 @@ export default function CodeEditorPage() {
         </ResizablePanel>
         <ResizableHandle />
         <ResizablePanel defaultSize={100 - settings.editorSize}>
-          <div className="h-full">
-            <AIChat
-              onCodeUpdate={handleCodeUpdate}
-              className="h-full"
-            />
-          </div>
+          <AIChat
+            onCodeUpdate={(newCode) => {
+              setCode(prev => prev + '\n' + newCode);
+            }}
+            className="h-full border-l bg-background"
+          />
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>
