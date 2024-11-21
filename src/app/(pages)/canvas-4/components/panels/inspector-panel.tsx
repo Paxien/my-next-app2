@@ -9,9 +9,9 @@ interface NodeChanges {
 }
 
 interface InspectorPanelProps {
-  title: string;
-  icon: React.ReactElement;
-  node: {
+  title?: string;
+  icon?: React.ReactNode;
+  node?: {
     id: string;
     position: { x: number; y: number };
     style?: { background?: string; borderWidth?: number };
@@ -19,7 +19,7 @@ interface InspectorPanelProps {
   onChange?: (changes: NodeChanges) => void;
 }
 
-export function InspectorPanel({ title, icon, node, onChange }: InspectorPanelProps) {
+export function InspectorPanel({ title = "Inspector", icon = <Settings className="h-5 w-5" />, node, onChange }: InspectorPanelProps) {
   const handlePositionChange = (axis: 'x' | 'y', value: string) => {
     const numValue = parseInt(value);
     if (!isNaN(numValue) && onChange) {

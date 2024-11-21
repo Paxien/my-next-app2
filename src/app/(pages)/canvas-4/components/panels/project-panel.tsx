@@ -1,7 +1,7 @@
 'use client';
 
 import { ScrollArea } from "@/components/scroll-area";
-import { Folder, ChevronRight, File, FolderOpen } from "lucide-react";
+import { Folder, ChevronRight, File, FolderOpen, FolderTree } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -13,8 +13,8 @@ interface ProjectItem {
 }
 
 interface ProjectPanelProps {
-  title: string;
-  icon: React.ReactElement;
+  title?: string;
+  icon?: React.ReactNode;
 }
 
 const sampleData: ProjectItem[] = [
@@ -94,11 +94,17 @@ function ProjectItem({ item, depth = 0 }: { item: ProjectItem; depth?: number })
   );
 }
 
-export function ProjectPanel({ title, icon }: ProjectPanelProps) {
+export function ProjectPanel({ 
+  title = "Project",
+  icon = <FolderTree className="h-4 w-4" />
+}: ProjectPanelProps) {
   return (
-    <div className="h-full flex flex-col" title={title} icon={icon}>
+    <div className="h-full flex flex-col" title={title}>
       <div className="flex-none p-2 border-b">
-        <h3 className="font-medium text-sm">{title}</h3>
+        <h3 className="font-medium text-sm flex items-center">
+          {icon}
+          {title}
+        </h3>
       </div>
       <ScrollArea className="flex-1">
         <div className="p-2">

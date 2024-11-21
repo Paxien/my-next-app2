@@ -1,7 +1,7 @@
 'use client';
 
 import { ScrollArea } from "@/components/scroll-area";
-import { ChevronRight, Plus, Trash2, Layers } from "lucide-react";
+import { Layers, Plus, Trash2, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -11,23 +11,23 @@ interface Node {
 }
 
 interface HierarchyPanelProps {
-  title: string;
-  icon: React.ReactElement;
-  nodes: Node[];
+  title?: string;
+  icon?: React.ReactNode;
+  nodes?: Node[];
   selectedNodeId?: string;
   onNodeClick?: (nodeId: string) => void;
   onNodeAdd?: () => void;
   onNodeDelete?: (nodeId: string) => void;
 }
 
-export function HierarchyPanel({
-  title,
-  icon,
-  nodes,
+export function HierarchyPanel({ 
+  title = "Hierarchy",
+  icon = <Layers className="h-5 w-5" />,
+  nodes = [],
   selectedNodeId,
   onNodeClick,
   onNodeAdd,
-  onNodeDelete
+  onNodeDelete 
 }: HierarchyPanelProps) {
   const [localSelectedNodeId, setLocalSelectedNodeId] = useState<string | null>(selectedNodeId);
 
@@ -37,7 +37,7 @@ export function HierarchyPanel({
   };
 
   return (
-    <div className="h-full flex flex-col" title={title} icon={icon}>
+    <div className="h-full flex flex-col" title={title}>
       <div className="flex items-center justify-between p-4 border-b">
         <h3 className="font-medium">{title}</h3>
         <button

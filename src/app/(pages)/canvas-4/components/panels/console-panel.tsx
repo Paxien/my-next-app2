@@ -13,8 +13,8 @@ interface ConsoleMessage {
 }
 
 interface ConsolePanelProps {
-  title: string;
-  icon: React.ReactElement;
+  title?: string;
+  icon?: React.ReactNode;
 }
 
 const sampleMessages: ConsoleMessage[] = [
@@ -57,13 +57,19 @@ function MessageIcon({ type }: { type: ConsoleMessage['type'] }) {
   }
 }
 
-export function ConsolePanel({ title, icon }: ConsolePanelProps) {
+export function ConsolePanel({ 
+  title = "Console",
+  icon = <Terminal className="h-4 w-4" />
+}: ConsolePanelProps) {
   const [messages] = useState<ConsoleMessage[]>(sampleMessages);
 
   return (
-    <div className="h-full flex flex-col" title={title} icon={icon}>
+    <div className="h-full flex flex-col" title={title}>
       <div className="flex-none p-2 border-b">
-        <h3 className="font-medium text-sm">{title}</h3>
+        <h3 className="font-medium text-sm flex items-center space-x-2">
+          {icon}
+          {title}
+        </h3>
       </div>
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-2">

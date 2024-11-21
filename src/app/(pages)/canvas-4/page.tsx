@@ -33,6 +33,7 @@ import { HierarchyPanel } from './components/panels/hierarchy-panel';
 import { AIPanel } from './components/panels/ai-panel';
 import { ProjectPanel } from './components/panels/project-panel';
 import { ConsolePanel } from './components/panels/console-panel';
+import { cn } from '@/lib/utils';
 
 const initialNodes: Node[] = [
   {
@@ -69,6 +70,10 @@ function Flow() {
   const [showGrid, setShowGrid] = useState(true);
   const [leftBottomHeight, setLeftBottomHeight] = useState(300);
   const [rightBottomHeight, setRightBottomHeight] = useState(300);
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
+  const [leftTopSectionHeight, setLeftTopSectionHeight] = useState<number | null>(null);
+  const [rightTopSectionHeight, setRightTopSectionHeight] = useState<number | null>(null);
   const { fitView } = useReactFlow();
 
   const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
@@ -161,9 +166,21 @@ function Flow() {
       {/* Main Content Area */}
       <div className="flex-1 flex min-h-0">
         {/* Left sidebar */}
-        <div className="flex flex-col h-full">
-          <div className="flex-1 min-h-0">
-            <Sidebar side="left" defaultPanel={0}>
+        <div className={cn(
+          'flex flex-col h-full',
+          leftSidebarCollapsed && 'w-[40px]',
+          'transition-all duration-200 ease-in-out'
+        )}>
+          <div className="flex-1 min-h-0" style={{ minHeight: '150px' }}>
+            <Sidebar 
+              side="left" 
+              defaultPanel={0}
+              onCollapse={setLeftSidebarCollapsed}
+              isCollapsed={leftSidebarCollapsed}
+              onResize={(width, height) => {
+                if (height) setLeftTopSectionHeight(height);
+              }}
+            >
               <HierarchyPanel
                 title="Hierarchy"
                 icon={<Layers className="h-5 w-5" />}
@@ -184,8 +201,10 @@ function Flow() {
             defaultPanel={0}
             defaultHeight={leftBottomHeight}
             minHeight={150}
-            maxHeight={600}
+            maxHeight={Math.max(600, window.innerHeight - (leftTopSectionHeight || 0) - 48)}
             onResize={(_, height) => height && setLeftBottomHeight(height)}
+            isBottomPanel
+            isCollapsed={leftSidebarCollapsed}
           >
             <ConsolePanel title="Console" icon={<Terminal className="h-4 w-4" />} />
             <div title="Debug" icon={<Bug className="h-4 w-4" />}>Debug Panel Content</div>
@@ -224,9 +243,21 @@ function Flow() {
         </div>
 
         {/* Right sidebar */}
-        <div className="flex flex-col h-full">
-          <div className="flex-1 min-h-0">
-            <Sidebar side="right" defaultPanel={0}>
+        <div className={cn(
+          'flex flex-col h-full',
+          rightSidebarCollapsed && 'w-[40px]',
+          'transition-all duration-200 ease-in-out'
+        )}>
+          <div className="flex-1 min-h-0" style={{ minHeight: '150px' }}>
+            <Sidebar 
+              side="right" 
+              defaultPanel={0}
+              onCollapse={setRightSidebarCollapsed}
+              isCollapsed={rightSidebarCollapsed}
+              onResize={(width, height) => {
+                if (height) setRightTopSectionHeight(height);
+              }}
+            >
               <InspectorPanel title="Inspector" icon={<Settings className="h-5 w-5" />} />
             </Sidebar>
           </div>
@@ -235,8 +266,10 @@ function Flow() {
             defaultPanel={0}
             defaultHeight={rightBottomHeight}
             minHeight={150}
-            maxHeight={600}
+            maxHeight={Math.max(600, window.innerHeight - (rightTopSectionHeight || 0) - 48)}
             onResize={(_, height) => height && setRightBottomHeight(height)}
+            isBottomPanel
+            isCollapsed={rightSidebarCollapsed}
           >
             <ProjectPanel title="Project" icon={<FolderTree className="h-4 w-4" />} />
             <div title="Git" icon={<GitBranch className="h-4 w-4" />}>Git Panel Content</div>
